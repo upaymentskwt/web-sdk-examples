@@ -1,27 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UPayments, type PaymentMethodId, type PayOptions } from '@upayments-kw/web-sdk';
 import { PaymentMethods, ApplePayButton } from '@upayments-kw/react';
 
-type Environment = 'sandbox' | 'production' | 'development';
-
-const defaultServiceUrls: Record<Environment, string> = {
-  sandbox: 'https://sandboxapi.upayments.com/api/v1',
-  production: 'https://apiv2api.upayments.com/api/v1',
-  development: 'https://dev-apiv2api.upayments.com/api/v1',
-};
-
-const defaultCpsUrls: Record<Environment, string> = {
-  sandbox: 'https://sandboxcps.upayments.com',
-  production: 'https://cps.upayments.com',
-  development: 'https://dev-cps.upayments.com',
-};
+type Environment = 'sandbox' | 'production';
 
 export const App: React.FC = () => {
   const [sdk, setSdk] = useState<any>(null);
   const [environment, setEnvironment] = useState<Environment>('sandbox');
   const [token, setToken] = useState<string>('');
-  const [serviceBaseUrl, setServiceBaseUrl] = useState<string>(defaultServiceUrls['sandbox']);
-  const [cpsBaseUrl, setCpsBaseUrl] = useState<string>(defaultCpsUrls['sandbox']);
   const [amount, setAmount] = useState<number>(25.0);
   const [availableMethods, setAvailableMethods] = useState<PaymentMethodId[]>([]);
   const [status, setStatus] = useState<string>('Enter your Bearer API Token to initialize SDK');
@@ -32,17 +18,9 @@ export const App: React.FC = () => {
     setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
   };
 
-  // Sync default service & CPS URLs when environment changes
-  useEffect(() => {
-    setServiceBaseUrl(defaultServiceUrls[environment]);
-    setCpsBaseUrl(defaultCpsUrls[environment]);
-  }, [environment]);
-
   const initSdk = async (
     authToken: string,
     env: Environment = environment,
-    serviceUrl: string = serviceBaseUrl,
-    cpsUrl: string = cpsBaseUrl,
   ) => {
     const trimmedToken = authToken.trim();
     if (!trimmedToken) {
@@ -65,8 +43,6 @@ export const App: React.FC = () => {
           type: 'bearer',
           token: trimmedToken,
         },
-        ...(serviceUrl.trim() ? { serviceBaseUrl: serviceUrl.trim() } : {}),
-        ...(cpsUrl.trim() ? { cpsBaseUrl: cpsUrl.trim() } : {}),
         debug: true,
       });
 
@@ -101,7 +77,7 @@ export const App: React.FC = () => {
 
   const handleApplyConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    initSdk(token, environment, serviceBaseUrl, cpsBaseUrl);
+    initSdk(token, environment);
   };
 
   /**
@@ -256,28 +232,6 @@ export const App: React.FC = () => {
                 border: '1px solid #cbd5e1',
                 fontSize: '0.875rem',
                 fontFamily: 'monospace',
-              }}
-            />
-          </div>
-
-          {/* Service URL Override */}
-          <div style={{ marginBottom: '0.875rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>
-              Service Base URL (Auto-filled):
-            </label>
-            <input
-              type="text"
-              value={serviceBaseUrl}
-              onChange={(e) => setServiceBaseUrl(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: '1px solid #e2e8f0',
-                fontSize: '0.75rem',
-                fontFamily: 'monospace',
-                backgroundColor: '#f8fafc',
-                color: '#64748b',
               }}
             />
           </div>

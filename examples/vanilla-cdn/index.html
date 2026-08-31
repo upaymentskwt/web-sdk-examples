@@ -146,11 +146,6 @@
             <input id="token-input" type="password" placeholder="Paste your UAPI Bearer Token here" />
           </div>
 
-          <div class="form-group">
-            <label for="service-url-input" style="font-size: 0.75rem; color: #64748b;">Service Base URL:</label>
-            <input id="service-url-input" class="mono" type="text" value="https://sandboxapi.upayments.com/api/v1" style="font-size: 0.75rem; background: #f8fafc; color: #64748b;" />
-          </div>
-
           <button type="submit" class="btn-primary">Apply &amp; Initialize SDK</button>
         </form>
       </section>
@@ -185,25 +180,12 @@
     </div>
 
     <script>
-      const defaultServiceUrls = {
-        sandbox: 'https://sandboxapi.upayments.com/api/v1',
-        production: 'https://apiv2api.upayments.com/api/v1',
-        development: 'https://dev-apiv2api.upayments.com/api/v1',
-      };
-
-      const defaultCpsUrls = {
-        sandbox: 'https://sandboxcps.upayments.com',
-        production: 'https://cps.upayments.com',
-        development: 'https://dev-cps.upayments.com',
-      };
-
       let sdkInstance = null;
 
       const form = document.getElementById('config-form');
       const envSelect = document.getElementById('env-select');
       const amountInput = document.getElementById('amount-input');
       const tokenInput = document.getElementById('token-input');
-      const serviceUrlInput = document.getElementById('service-url-input');
       const statusBox = document.getElementById('status-box');
       const statusText = document.getElementById('status-text');
       const checkoutCard = document.getElementById('checkout-card');
@@ -224,10 +206,6 @@
 
       clearLogsBtn.addEventListener('click', () => {
         logConsole.innerHTML = '<span style="color: #64748b;">No events recorded yet.</span>';
-      });
-
-      envSelect.addEventListener('change', () => {
-        serviceUrlInput.value = defaultServiceUrls[envSelect.value] || '';
       });
 
       function buildUapiPayload(amount) {
@@ -295,7 +273,7 @@
         }
       });
 
-      function initSdk(token, env, serviceUrl) {
+      function initSdk(token, env) {
         const trimmedToken = (token || '').trim();
         if (!trimmedToken) {
           sdkInstance = null;
@@ -324,8 +302,6 @@
               type: 'bearer',
               token: trimmedToken,
             },
-            serviceBaseUrl: serviceUrl.trim(),
-            cpsBaseUrl: defaultCpsUrls[env],
             debug: true,
           };
 
@@ -364,7 +340,7 @@
 
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        initSdk(tokenInput.value, envSelect.value, serviceUrlInput.value);
+        initSdk(tokenInput.value, envSelect.value);
       });
     </script>
   </body>

@@ -170,8 +170,8 @@ export const CheckoutPage = () => {
       <h2>Complete Checkout</h2>
       {sdk ? (
         <PaymentMethods
-          sdk={sdk}
-          onMethodSelected={(e) => handlePay(e.detail.paymentMethod)}
+          availableMethods={['apple_pay', 'apple_pay_knet']}
+          onMethodSelected={(method) => handlePay(method)}
         />
       ) : (
         <p>Loading payment methods...</p>

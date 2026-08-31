@@ -108,8 +108,8 @@ export const Checkout = () => {
       <h2>Complete Purchase</h2>
       {sdk && (
         <PaymentMethods
-          sdk={sdk}
-          onMethodSelected={(e) => handlePayment(e.detail.paymentMethod)}
+          availableMethods={['apple_pay', 'apple_pay_knet']}
+          onMethodSelected={(method) => handlePayment(method)}
         />
       )}
     </div>
