@@ -1,0 +1,453 @@
+import React, { useState, useEffect } from 'react';
+import { UPayments, type PaymentMethodId, type PayOptions } from '@upayments-kw/web-sdk';
+import { PaymentMethods, ApplePayButton } from '@upayments-kw/react';
+
+type Environment = 'sandbox' | 'production' | 'development';
+
+const defaultServiceUrls: Record<Environment, string> = {
+  sandbox: 'https://sandboxapi.upayments.com/api/v1',
+  production: 'https://apiv2api.upayments.com/api/v1',
+  development: 'https://dev-apiv2api.upayments.com/api/v1',
+};
+
+const defaultCpsUrls: Record<Environment, string> = {
+  sandbox: 'https://sandboxcps.upayments.com',
+  production: 'https://cps.upayments.com',
+  development: 'https://dev-cps.upayments.com',
+};
+
+export const App: React.FC = () => {
+  const [sdk, setSdk] = useState<any>(null);
+  const [environment, setEnvironment] = useState<Environment>('sandbox');
+  const [token, setToken] = useState<string>('');
+  const [serviceBaseUrl, setServiceBaseUrl] = useState<string>(defaultServiceUrls['sandbox']);
+  const [cpsBaseUrl, setCpsBaseUrl] = useState<string>(defaultCpsUrls['sandbox']);
+  const [amount, setAmount] = useState<number>(25.0);
+  const [availableMethods, setAvailableMethods] = useState<PaymentMethodId[]>([]);
+  const [status, setStatus] = useState<string>('Enter your Bearer API Token to initialize SDK');
+  const [logs, setLogs] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'grouped' | 'standalone'>('grouped');
+
+  const addLog = (msg: string) => {
+    setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
+  };
+
+  // Sync default service & CPS URLs when environment changes
+  useEffect(() => {
+    setServiceBaseUrl(defaultServiceUrls[environment]);
+    setCpsBaseUrl(defaultCpsUrls[environment]);
+  }, [environment]);
+
+  const initSdk = async (
+    authToken: string,
+    env: Environment = environment,
+    serviceUrl: string = serviceBaseUrl,
+    cpsUrl: string = cpsBaseUrl,
+  ) => {
+    const trimmedToken = authToken.trim();
+    if (!trimmedToken) {
+      setSdk(null);
+      setAvailableMethods([]);
+      setStatus('Enter Bearer API Token to initialize');
+      addLog('No token provided. Payment methods disabled.');
+      return;
+    }
+
+    try {
+      setStatus(`Initializing SDK (${env})...`);
+      addLog(`Initializing UPayments SDK in ${env} mode...`);
+
+      // Initialize UPayments SDK in UAPI mode
+      const instance: any = UPayments.create({
+        from: 'uapi',
+        environment: env,
+        auth: {
+          type: 'bearer',
+          token: trimmedToken,
+        },
+        ...(serviceUrl.trim() ? { serviceBaseUrl: serviceUrl.trim() } : {}),
+        ...(cpsUrl.trim() ? { cpsBaseUrl: cpsUrl.trim() } : {}),
+        debug: true,
+      });
+
+      // Event: SDK Ready
+      instance.on('upay:ready', (event: { availablePaymentMethods: PaymentMethodId[] }) => {
+        addLog(`Event [upay:ready]: Available methods -> ${event.availablePaymentMethods.join(', ') || 'None'}`);
+      });
+
+      // Event: Error
+      instance.on('upay:error', (error: unknown) => {
+        addLog(`Event [upay:error]: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+      });
+
+      setSdk(instance);
+      const methods = instance.getAvailablePaymentMethods();
+      setAvailableMethods(methods);
+
+      setStatus(
+        methods.length > 0
+          ? `Ready for checkout (${env})`
+          : 'SDK initialized (No payment methods available on this browser/device)',
+      );
+      addLog(`SDK initialized successfully. Available methods: ${methods.join(', ') || 'none'}`);
+    } catch (err: unknown) {
+      setSdk(null);
+      setAvailableMethods([]);
+      const message = err instanceof Error ? err.message : String(err);
+      setStatus(`Init failed: ${message}`);
+      addLog(`Error during initialization: ${message}`);
+    }
+  };
+
+  const handleApplyConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    initSdk(token, environment, serviceBaseUrl, cpsBaseUrl);
+  };
+
+  /**
+   * Build UAPI Create Payment Payload
+   */
+  const buildUapiPayload = (currentAmount: number): PayOptions<'uapi'>['payload'] => {
+    const orderId = `ORD_${Date.now()}`;
+    return {
+      amount: Number(currentAmount),
+      products: [
+        {
+          name: 'Demo Product',
+          description: 'Example store checkout item',
+          price: Number(currentAmount),
+          quantity: 1,
+        },
+      ],
+      order: {
+        id: orderId,
+        reference: orderId,
+        description: 'Store Payment via UPayments Web SDK',
+        currency: 'KWD',
+        amount: Number(currentAmount),
+      },
+      language: 'en',
+      reference: {
+        id: orderId,
+      },
+      customer: {
+        uniqueId: 'cust_12345',
+        name: 'Demo Customer',
+        mobile: '+96560000000',
+        email: 'customer@example.com',
+      },
+      returnUrl: typeof window !== 'undefined' ? `${window.location.origin}/return` : 'https://localhost:5173/return',
+      cancelUrl: typeof window !== 'undefined' ? `${window.location.origin}/cancel` : 'https://localhost:5173/cancel',
+      notificationUrl: 'https://webhook.site/demo-endpoint',
+      domainName: typeof window !== 'undefined' ? window.location.hostname : 'localhost',
+      isSaveCard: false,
+    };
+  };
+
+  const handlePay = async (method: PaymentMethodId) => {
+    if (!sdk) return;
+
+    try {
+      addLog(`Initiating payment for ${method} (${amount} KWD)...`);
+      const payload = buildUapiPayload(amount);
+
+      const result = await sdk.pay({
+        paymentMethod: method,
+        payload,
+      });
+
+      addLog(`Payment completed: ${JSON.stringify(result)}`);
+      alert(`Payment successful! Track ID / Order: ${JSON.stringify(result)}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      addLog(`Payment failed: ${message}`);
+    }
+  };
+
+  const isReady = Boolean(sdk && availableMethods.length > 0);
+
+  return (
+    <div style={{ maxWidth: 520, margin: '2rem auto', padding: '1.25rem' }}>
+      <header style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+        <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a', fontWeight: 700 }}>
+          UPayments Web SDK
+        </h1>
+        <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.875rem' }}>
+          Merchant Example Application (UAPI Integration)
+        </p>
+      </header>
+
+      {/* Configuration Box */}
+      <section
+        style={{
+          border: '1px solid #e2e8f0',
+          borderRadius: 12,
+          padding: '1.25rem',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <h2 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>
+          Merchant Configuration
+        </h2>
+
+        <form onSubmit={handleApplyConfig}>
+          {/* Environment */}
+          <div style={{ marginBottom: '0.875rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+              Environment:
+            </label>
+            <select
+              value={environment}
+              onChange={(e) => setEnvironment(e.target.value as Environment)}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                borderRadius: 6,
+                border: '1px solid #cbd5e1',
+                fontSize: '0.875rem',
+                backgroundColor: '#f8fafc',
+                fontWeight: 500,
+              }}
+            >
+              <option value="sandbox">Sandbox (Testing)</option>
+              <option value="production">Production (Live)</option>
+              <option value="development">Development (Internal)</option>
+            </select>
+          </div>
+
+          {/* Amount */}
+          <div style={{ marginBottom: '0.875rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+              Order Amount (KWD):
+            </label>
+            <input
+              type="number"
+              step="0.001"
+              min="0.001"
+              value={amount}
+              onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                borderRadius: 6,
+                border: '1px solid #cbd5e1',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+              }}
+            />
+          </div>
+
+          {/* Bearer Token */}
+          <div style={{ marginBottom: '0.875rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+              Merchant Bearer API Token:
+            </label>
+            <input
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="Paste your UAPI Bearer Token here"
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                borderRadius: 6,
+                border: '1px solid #cbd5e1',
+                fontSize: '0.875rem',
+                fontFamily: 'monospace',
+              }}
+            />
+          </div>
+
+          {/* Service URL Override */}
+          <div style={{ marginBottom: '0.875rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>
+              Service Base URL (Auto-filled):
+            </label>
+            <input
+              type="text"
+              value={serviceBaseUrl}
+              onChange={(e) => setServiceBaseUrl(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid #e2e8f0',
+                fontSize: '0.75rem',
+                fontFamily: 'monospace',
+                backgroundColor: '#f8fafc',
+                color: '#64748b',
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            style={{
+              width: '100%',
+              padding: '10px',
+              borderRadius: 8,
+              border: 'none',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginTop: '0.5rem',
+            }}
+          >
+            Apply &amp; Initialize SDK
+          </button>
+        </form>
+      </section>
+
+      {/* Status Banner */}
+      <div
+        style={{
+          padding: '0.75rem 1rem',
+          borderRadius: 8,
+          backgroundColor: isReady ? '#f0fdf4' : '#f8fafc',
+          border: `1px solid ${isReady ? '#bbf7d0' : '#e2e8f0'}`,
+          color: isReady ? '#166534' : '#475569',
+          fontSize: '0.875rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-block',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            backgroundColor: isReady ? '#22c55e' : '#94a3b8',
+          }}
+        />
+        <span>{status}</span>
+      </div>
+
+      {/* Checkout Display */}
+      {sdk ? (
+        <section
+          style={{
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            padding: '1.25rem',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            marginBottom: '1.5rem',
+          }}
+        >
+          <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
+            <button
+              onClick={() => setActiveTab('grouped')}
+              style={{
+                flex: 1,
+                padding: '8px 0',
+                border: 'none',
+                background: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: activeTab === 'grouped' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'grouped' ? '2px solid #2563eb' : 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Grouped Element
+            </button>
+            <button
+              onClick={() => setActiveTab('standalone')}
+              style={{
+                flex: 1,
+                padding: '8px 0',
+                border: 'none',
+                background: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: activeTab === 'standalone' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'standalone' ? '2px solid #2563eb' : 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Standalone Button
+            </button>
+          </div>
+
+          {activeTab === 'grouped' ? (
+            <div>
+              <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '0 0 1rem' }}>
+                Renders all available payment methods supported by the merchant and user device.
+              </p>
+              <PaymentMethods
+                availableMethods={availableMethods}
+                onMethodSelected={(method) => handlePay(method)}
+              />
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '0 0 1rem' }}>
+                Renders a standalone branded Apple Pay button.
+              </p>
+              <ApplePayButton
+                variant="black"
+                buttonStyle="buy"
+                onClick={() => handlePay('apple_pay')}
+              />
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {/* Live Logs */}
+      <section
+        style={{
+          border: '1px solid #e2e8f0',
+          borderRadius: 12,
+          padding: '1rem',
+          backgroundColor: '#ffffff',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <h3 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>
+            Live Event Logs
+          </h3>
+          <button
+            onClick={() => setLogs([])}
+            style={{
+              border: 'none',
+              background: 'none',
+              fontSize: '0.75rem',
+              color: '#64748b',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            Clear
+          </button>
+        </div>
+        <div
+          style={{
+            maxHeight: 180,
+            overflowY: 'auto',
+            backgroundColor: '#0f172a',
+            color: '#38bdf8',
+            padding: '0.75rem',
+            borderRadius: 6,
+            fontSize: '0.75rem',
+            fontFamily: 'monospace',
+            lineHeight: 1.5,
+          }}
+        >
+          {logs.length === 0 ? (
+            <span style={{ color: '#64748b' }}>No events recorded yet.</span>
+          ) : (
+            logs.map((log, index) => <div key={index}>{log}</div>)
+          )}
+        </div>
+      </section>
+    </div>
+  );
+};

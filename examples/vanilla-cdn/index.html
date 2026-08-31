@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UPayments Web SDK (UAPI) - HTML / CDN Example</title>
+
+    <!-- Load UPayments Web SDK via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@upayments-kw/web-sdk/dist/upayments.js"></script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f8fafc;
+        color: #0f172a;
+        margin: 0;
+        padding: 1.5rem;
+      }
+      .container {
+        max-width: 520px;
+        margin: 0 auto;
+      }
+      header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      p.subtitle {
+        margin: 0.25rem 0 0;
+        color: #64748b;
+        font-size: 0.875rem;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
+      }
+      .form-group {
+        margin-bottom: 0.875rem;
+      }
+      label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 4px;
+      }
+      input, select {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+        font-size: 0.875rem;
+      }
+      input[type="password"], input.mono {
+        font-family: monospace;
+      }
+      button.btn-primary {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background-color: #2563eb;
+        color: #ffffff;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 0.5rem;
+      }
+      .status-box {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+      }
+      .status-box.ready {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+        color: #166534;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #94a3b8;
+      }
+      .status-box.ready .status-dot {
+        background-color: #22c55e;
+      }
+      .log-console {
+        background: #0f172a;
+        color: #38bdf8;
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-family: monospace;
+        max-height: 180px;
+        overflow-y: auto;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>UPayments Web SDK</h1>
+        <p class="subtitle">Vanilla HTML / CDN Example (UAPI)</p>
+      </header>
+
+      <!-- Configuration Card -->
+      <section class="card">
+        <h2 style="margin: 0 0 1rem; font-size: 1rem; font-weight: 600;">Merchant Configuration</h2>
+        <form id="config-form">
+          <div class="form-group">
+            <label for="env-select">Environment:</label>
+            <select id="env-select">
+              <option value="sandbox">Sandbox (Testing)</option>
+              <option value="production">Production (Live)</option>
+              <option value="development">Development (Internal)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="amount-input">Order Amount (KWD):</label>
+            <input id="amount-input" type="number" step="0.001" min="0.001" value="25.000" style="font-weight: 600;" />
+          </div>
+
+          <div class="form-group">
+            <label for="token-input">Merchant Bearer API Token:</label>
+            <input id="token-input" type="password" placeholder="Paste your UAPI Bearer Token here" />
+          </div>
+
+          <div class="form-group">
+            <label for="service-url-input" style="font-size: 0.75rem; color: #64748b;">Service Base URL:</label>
+            <input id="service-url-input" class="mono" type="text" value="https://sandboxapi.upayments.com/api/v1" style="font-size: 0.75rem; background: #f8fafc; color: #64748b;" />
+          </div>
+
+          <button type="submit" class="btn-primary">Apply &amp; Initialize SDK</button>
+        </form>
+      </section>
+
+      <!-- Status Indicator -->
+      <div id="status-box" class="status-box">
+        <span class="status-dot"></span>
+        <span id="status-text">Enter your Bearer API Token to initialize SDK</span>
+      </div>
+
+      <!-- Payment Element Card -->
+      <section id="checkout-card" class="card" style="display: none;">
+        <h2 style="margin: 0 0 0.5rem; font-size: 1rem; font-weight: 600;">Complete Checkout</h2>
+        <p style="font-size: 0.8125rem; color: #64748b; margin: 0 0 1rem;">
+          Supported methods on this device (e.g. Apple Pay, Apple Pay KNET) will render below:
+        </p>
+
+        <!-- UPayments Web Component -->
+        <upayments-payment-methods id="payment-methods-el"></upayments-payment-methods>
+      </section>
+
+      <!-- Live Logs Card -->
+      <section class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <h3 style="margin: 0; font-size: 0.875rem; font-weight: 600; color: #475569;">Live Event Logs</h3>
+          <button id="clear-logs-btn" style="border: none; background: none; font-size: 0.75rem; color: #64748b; cursor: pointer; text-decoration: underline;">Clear</button>
+        </div>
+        <div id="log-console" class="log-console">
+          <span style="color: #64748b;">No events recorded yet.</span>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const defaultServiceUrls = {
+        sandbox: 'https://sandboxapi.upayments.com/api/v1',
+        production: 'https://apiv2api.upayments.com/api/v1',
+        development: 'https://dev-apiv2api.upayments.com/api/v1',
+      };
+
+      const defaultCpsUrls = {
+        sandbox: 'https://sandboxcps.upayments.com',
+        production: 'https://cps.upayments.com',
+        development: 'https://dev-cps.upayments.com',
+      };
+
+      let sdkInstance = null;
+
+      const form = document.getElementById('config-form');
+      const envSelect = document.getElementById('env-select');
+      const amountInput = document.getElementById('amount-input');
+      const tokenInput = document.getElementById('token-input');
+      const serviceUrlInput = document.getElementById('service-url-input');
+      const statusBox = document.getElementById('status-box');
+      const statusText = document.getElementById('status-text');
+      const checkoutCard = document.getElementById('checkout-card');
+      const paymentMethodsEl = document.getElementById('payment-methods-el');
+      const logConsole = document.getElementById('log-console');
+      const clearLogsBtn = document.getElementById('clear-logs-btn');
+
+      function addLog(msg) {
+        const time = new Date().toLocaleTimeString();
+        const entry = `[${time}] ${msg}`;
+        if (logConsole.innerHTML.includes('No events recorded yet.')) {
+          logConsole.innerHTML = '';
+        }
+        const row = document.createElement('div');
+        row.textContent = entry;
+        logConsole.prepend(row);
+      }
+
+      clearLogsBtn.addEventListener('click', () => {
+        logConsole.innerHTML = '<span style="color: #64748b;">No events recorded yet.</span>';
+      });
+
+      envSelect.addEventListener('change', () => {
+        serviceUrlInput.value = defaultServiceUrls[envSelect.value] || '';
+      });
+
+      function buildUapiPayload(amount) {
+        const orderId = 'ORD_' + Date.now();
+        return {
+          amount: Number(amount),
+          products: [
+            {
+              name: 'Demo Product',
+              description: 'Example store checkout item',
+              price: Number(amount),
+              quantity: 1,
+            },
+          ],
+          order: {
+            id: orderId,
+            reference: orderId,
+            description: 'Store Payment via UPayments Web SDK',
+            currency: 'KWD',
+            amount: Number(amount),
+          },
+          language: 'en',
+          reference: {
+            id: orderId,
+          },
+          customer: {
+            uniqueId: 'cust_12345',
+            name: 'Demo Customer',
+            mobile: '+96560000000',
+            email: 'customer@example.com',
+          },
+          returnUrl: window.location.origin + '/return',
+          cancelUrl: window.location.origin + '/cancel',
+          notificationUrl: 'https://webhook.site/demo-endpoint',
+          domainName: window.location.hostname || 'localhost',
+          isSaveCard: false,
+        };
+      }
+
+      async function handlePayment(paymentMethod) {
+        if (!sdkInstance) return;
+
+        const currentAmount = parseFloat(amountInput.value) || 25.0;
+        addLog(`Initiating payment for ${paymentMethod} (${currentAmount} KWD)...`);
+
+        try {
+          const payload = buildUapiPayload(currentAmount);
+          const result = await sdkInstance.pay({
+            paymentMethod,
+            payload,
+          });
+
+          addLog('Payment completed: ' + JSON.stringify(result));
+          alert('Payment successful! ' + JSON.stringify(result));
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          addLog('Payment failed: ' + message);
+        }
+      }
+
+      // Listen for method selection on the web component
+      paymentMethodsEl.addEventListener('upay:payment-method-selected', (e) => {
+        if (e.detail && e.detail.paymentMethod) {
+          handlePayment(e.detail.paymentMethod);
+        }
+      });
+
+      function initSdk(token, env, serviceUrl) {
+        const trimmedToken = (token || '').trim();
+        if (!trimmedToken) {
+          sdkInstance = null;
+          statusBox.className = 'status-box';
+          statusText.textContent = 'Enter your Bearer API Token to initialize SDK';
+          checkoutCard.style.display = 'none';
+          addLog('No token provided. Payment methods disabled.');
+          return;
+        }
+
+        if (typeof window.UPayments === 'undefined' || !window.UPayments.create) {
+          statusBox.className = 'status-box';
+          statusText.textContent = 'Error: UPayments CDN script not loaded.';
+          addLog('Error: window.UPayments is not defined.');
+          return;
+        }
+
+        try {
+          statusText.textContent = `Initializing SDK (${env})...`;
+          addLog(`Initializing UPayments SDK in ${env} mode...`);
+
+          const config = {
+            from: 'uapi',
+            environment: env,
+            auth: {
+              type: 'bearer',
+              token: trimmedToken,
+            },
+            serviceBaseUrl: serviceUrl.trim(),
+            cpsBaseUrl: defaultCpsUrls[env],
+            debug: true,
+          };
+
+          sdkInstance = window.UPayments.create(config);
+
+          sdkInstance.on('upay:ready', (event) => {
+            addLog(`Event [upay:ready]: Available methods -> ${(event.availablePaymentMethods || []).join(', ') || 'None'}`);
+          });
+
+          sdkInstance.on('upay:error', (err) => {
+            addLog(`Event [upay:error]: ${err && err.message ? err.message : JSON.stringify(err)}`);
+          });
+
+          // Connect SDK instance to web component
+          paymentMethodsEl.sdk = sdkInstance;
+
+          const methods = sdkInstance.getAvailablePaymentMethods();
+          if (methods.length > 0) {
+            statusBox.className = 'status-box ready';
+            statusText.textContent = `Ready for checkout (${env})`;
+          } else {
+            statusBox.className = 'status-box';
+            statusText.textContent = 'SDK initialized (No payment methods available on this browser/device)';
+          }
+
+          checkoutCard.style.display = 'block';
+          addLog(`SDK initialized. Available methods: ${methods.join(', ') || 'none'}`);
+        } catch (err) {
+          sdkInstance = null;
+          checkoutCard.style.display = 'none';
+          const message = err instanceof Error ? err.message : String(err);
+          statusText.textContent = `Init failed: ${message}`;
+          addLog(`Error: ${message}`);
+        }
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        initSdk(tokenInput.value, envSelect.value, serviceUrlInput.value);
+      });
+    </script>
+  </body>
+</html>
