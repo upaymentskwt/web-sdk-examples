@@ -5,7 +5,7 @@ import { PaymentMethods, ApplePayButton } from '@upayments-kw/react';
 type Environment = 'sandbox' | 'production';
 
 export const App: React.FC = () => {
-  const [sdk, setSdk] = useState<any>(null);
+  const [sdk, setSdk] = useState<UPayments<'uapi'> | null>(null);
   const [environment, setEnvironment] = useState<Environment>('sandbox');
   const [token, setToken] = useState<string>('');
   const [amount, setAmount] = useState<number>(25.0);
@@ -33,7 +33,7 @@ export const App: React.FC = () => {
       addLog(`Initializing UPayments SDK in ${env} mode...`);
 
       // Initialize UPayments SDK in UAPI mode
-      const instance: any = UPayments.create({
+      const instance = UPayments.create({
         from: 'uapi',
         environment: env,
         auth: {
@@ -52,10 +52,10 @@ export const App: React.FC = () => {
         );
       });
 
-      // Event: Error
-      instance.on('upay:error', (error: unknown) => {
+      // Event: Payment Failed
+      instance.on('upay:payment-failed', (event) => {
         addLog(
-          `Event [upay:error]: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+          `Event [upay:payment-failed]: ${event.error?.userMessage || event.error?.code || 'Payment failed'}`,
         );
       });
 
@@ -90,6 +90,8 @@ export const App: React.FC = () => {
    */
   const buildUapiPayload = (currentAmount: number): PayOptions<'uapi'>['payload'] => {
     const orderId = `ORD_${Date.now()}`;
+    let domainName = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    if (domainName.match(/localhost/)) domainName = 'sdkweb.upaytest.com';
     return {
       amount: Number(currentAmount),
       products: [
@@ -126,7 +128,7 @@ export const App: React.FC = () => {
           ? `${window.location.origin}/cancel`
           : 'https://localhost:5173/cancel',
       notificationUrl: 'https://webhook.site/demo-endpoint',
-      domainName: typeof window !== 'undefined' ? window.location.hostname : 'localhost',
+      domainName,
       isSaveCard: false,
     };
   };
