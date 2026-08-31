@@ -53,11 +53,12 @@ To enable Apple Pay on your domain:
 
 ## Example Applications
 
-This repository contains two example implementations:
+This repository contains ready-to-run example implementations:
 
 | Directory | Framework | Description |
 |---|---|---|
 | [`examples/react-vite`](./examples/react-vite) | **React + Vite** | Complete React integration using `@upayments-kw/react` and `@upayments-kw/web-sdk`. |
+| [`examples/nextjs`](./examples/nextjs) | **Next.js (App Router)** | Next.js 14 App Router integration with client components and Apple Pay. |
 | [`examples/vanilla-cdn`](./examples/vanilla-cdn) | **HTML + Vanilla JS** | Zero-build integration using the CDN script tag and Web Components. |
 
 ### Running Examples Locally
@@ -72,14 +73,17 @@ Install dependencies and run:
 ```bash
 pnpm install
 
-# Run the React example
+# Run the React + Vite example
 pnpm dev:react
+
+# Run the Next.js App Router example
+pnpm dev:next
 
 # Run the Vanilla HTML/CDN example
 pnpm dev:vanilla
 ```
 
-Both examples will start with local **HTTPS** enabled (required for Apple Pay sheet rendering).
+All examples start with local **HTTPS** enabled (required for Apple Pay sheet rendering).
 
 ---
 

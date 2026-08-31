@@ -5,6 +5,7 @@
   "description": "Official merchant examples for UPayments Web SDK (UAPI)",
   "scripts": {
     "dev:react": "pnpm --filter @example/react-vite dev",
+    "dev:next": "pnpm --filter @example/nextjs dev",
     "dev:vanilla": "pnpm --filter @example/vanilla-cdn dev",
     "build": "pnpm -r build"
   }
