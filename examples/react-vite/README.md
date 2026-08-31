@@ -51,16 +51,21 @@ export const Checkout = () => {
   const [sdk, setSdk] = useState<UPayments<'uapi'> | null>(null);
 
   useEffect(() => {
-    const instance = UPayments.create({
-      from: 'uapi',
-      environment: 'sandbox', // or 'production'
-      auth: {
-        type: 'bearer',
-        token: 'YOUR_MERCHANT_BEARER_TOKEN',
-      },
-    });
+    async function init() {
+      const instance = UPayments.create({
+        from: 'uapi',
+        environment: 'sandbox', // or 'production'
+        auth: {
+          type: 'bearer',
+          token: 'YOUR_MERCHANT_BEARER_TOKEN',
+        },
+      });
 
-    setSdk(instance);
+      await instance.initialize();
+      setSdk(instance);
+    }
+
+    init();
   }, []);
 
   const handlePayment = async (method: string) => {

@@ -104,18 +104,23 @@ export const CheckoutPage = () => {
   const [sdk, setSdk] = useState<UPayments<'uapi'> | null>(null);
 
   useEffect(() => {
-    // 1. Initialize SDK in UAPI mode
-    const instance = UPayments.create({
-      from: 'uapi',
-      environment: 'sandbox', // 'sandbox' or 'production'
-      auth: {
-        type: 'bearer',
-        token: 'YOUR_MERCHANT_BEARER_TOKEN',
-      },
-      debug: false,
-    });
+    async function init() {
+      // 1. Initialize SDK in UAPI mode
+      const instance = UPayments.create({
+        from: 'uapi',
+        environment: 'sandbox', // 'sandbox' or 'production'
+        auth: {
+          type: 'bearer',
+          token: 'YOUR_MERCHANT_BEARER_TOKEN',
+        },
+        debug: false,
+      });
 
-    setSdk(instance);
+      await instance.initialize();
+      setSdk(instance);
+    }
+
+    init();
   }, []);
 
   const handlePay = async (method: PaymentMethodId) => {
@@ -196,22 +201,25 @@ export const CheckoutPage = () => {
 <upayments-payment-methods id="payment-methods-element"></upayments-payment-methods>
 
 <script>
-  // 1. Initialize SDK
-  const sdk = window.UPayments.create({
-    from: 'uapi',
-    environment: 'sandbox', // 'sandbox' or 'production'
-    auth: {
-      type: 'bearer',
-      token: 'YOUR_MERCHANT_BEARER_TOKEN'
-    }
-  });
+  async function startCheckout() {
+    // 1. Initialize SDK
+    const sdk = window.UPayments.create({
+      from: 'uapi',
+      environment: 'sandbox', // 'sandbox' or 'production'
+      auth: {
+        type: 'bearer',
+        token: 'YOUR_MERCHANT_BEARER_TOKEN'
+      }
+    });
 
-  // 2. Connect SDK instance to web component
-  const element = document.getElementById('payment-methods-element');
-  element.sdk = sdk;
+    await sdk.initialize();
 
-  // 3. Listen for method click and trigger payment
-  element.addEventListener('upay:payment-method-selected', async (event) => {
+    // 2. Connect SDK instance to web component
+    const element = document.getElementById('payment-methods-element');
+    element.sdk = sdk;
+
+    // 3. Listen for method click and trigger payment
+    element.addEventListener('upay:payment-method-selected', async (event) => {
     const selectedMethod = event.detail.paymentMethod;
 
     try {

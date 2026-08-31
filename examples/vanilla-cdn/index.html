@@ -315,6 +315,8 @@
             addLog(`Event [upay:error]: ${err && err.message ? err.message : JSON.stringify(err)}`);
           });
 
+          await sdkInstance.initialize();
+
           // Connect SDK instance to web component
           paymentMethodsEl.sdk = sdkInstance;
 

@@ -53,18 +53,23 @@ The app will start at `https://localhost:5174` (with HTTPS enabled via `@vitejs/
 
   <script>
     // 3. Initialize SDK
-    const sdk = window.UPayments.create({
-      from: 'uapi',
-      environment: 'sandbox', // or 'production'
-      auth: {
-        type: 'bearer',
-        token: 'YOUR_MERCHANT_BEARER_TOKEN'
-      }
-    });
+    async function init() {
+      const sdk = window.UPayments.create({
+        from: 'uapi',
+        environment: 'sandbox', // or 'production'
+        auth: {
+          type: 'bearer',
+          token: 'YOUR_MERCHANT_BEARER_TOKEN'
+        }
+      });
 
-    // 4. Attach SDK to UI element
-    const el = document.getElementById('payment-methods-el');
-    el.sdk = sdk;
+      await sdk.initialize();
+
+      // 4. Attach SDK to UI element
+      const el = document.getElementById('payment-methods-el');
+      el.sdk = sdk;
+    }
+    init();
 
     // 5. Handle payment method selection
     el.addEventListener('upay:payment-method-selected', async (e) => {

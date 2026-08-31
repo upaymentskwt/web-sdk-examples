@@ -18,10 +18,7 @@ export const App: React.FC = () => {
     setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
   };
 
-  const initSdk = async (
-    authToken: string,
-    env: Environment = environment,
-  ) => {
+  const initSdk = async (authToken: string, env: Environment = environment) => {
     const trimmedToken = authToken.trim();
     if (!trimmedToken) {
       setSdk(null);
@@ -46,15 +43,23 @@ export const App: React.FC = () => {
         debug: true,
       });
 
+      console.log(instance);
+
       // Event: SDK Ready
       instance.on('upay:ready', (event: { availablePaymentMethods: PaymentMethodId[] }) => {
-        addLog(`Event [upay:ready]: Available methods -> ${event.availablePaymentMethods.join(', ') || 'None'}`);
+        addLog(
+          `Event [upay:ready]: Available methods -> ${event.availablePaymentMethods.join(', ') || 'None'}`,
+        );
       });
 
       // Event: Error
       instance.on('upay:error', (error: unknown) => {
-        addLog(`Event [upay:error]: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+        addLog(
+          `Event [upay:error]: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+        );
       });
+
+      await instance.initialize();
 
       setSdk(instance);
       const methods = instance.getAvailablePaymentMethods();
@@ -112,8 +117,14 @@ export const App: React.FC = () => {
         mobile: '+96560000000',
         email: 'customer@example.com',
       },
-      returnUrl: typeof window !== 'undefined' ? `${window.location.origin}/return` : 'https://localhost:5173/return',
-      cancelUrl: typeof window !== 'undefined' ? `${window.location.origin}/cancel` : 'https://localhost:5173/cancel',
+      returnUrl:
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/return`
+          : 'https://localhost:5173/return',
+      cancelUrl:
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/cancel`
+          : 'https://localhost:5173/cancel',
       notificationUrl: 'https://webhook.site/demo-endpoint',
       domainName: typeof window !== 'undefined' ? window.location.hostname : 'localhost',
       isSaveCard: false,
@@ -171,7 +182,15 @@ export const App: React.FC = () => {
         <form onSubmit={handleApplyConfig}>
           {/* Environment */}
           <div style={{ marginBottom: '0.875rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                color: '#475569',
+                marginBottom: 4,
+              }}
+            >
               Environment:
             </label>
             <select
@@ -195,7 +214,15 @@ export const App: React.FC = () => {
 
           {/* Amount */}
           <div style={{ marginBottom: '0.875rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                color: '#475569',
+                marginBottom: 4,
+              }}
+            >
               Order Amount (KWD):
             </label>
             <input
@@ -217,7 +244,15 @@ export const App: React.FC = () => {
 
           {/* Bearer Token */}
           <div style={{ marginBottom: '0.875rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                color: '#475569',
+                marginBottom: 4,
+              }}
+            >
               Merchant Bearer API Token:
             </label>
             <input
@@ -295,7 +330,9 @@ export const App: React.FC = () => {
             marginBottom: '1.5rem',
           }}
         >
-          <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
+          <div
+            style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '1.25rem' }}
+          >
             <button
               onClick={() => setActiveTab('grouped')}
               style={{
@@ -364,7 +401,14 @@ export const App: React.FC = () => {
           backgroundColor: '#ffffff',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '0.5rem',
+          }}
+        >
           <h3 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>
             Live Event Logs
           </h3>
