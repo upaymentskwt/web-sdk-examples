@@ -1,12 +1,17 @@
-# React + Vite Example (UAPI)
+# React + Vite Example
 
-This example demonstrates how to integrate the **UPayments Web SDK** in a modern React application using `@upayments-kw/web-sdk` and `@upayments-kw/react`.
+This example demonstrates how to integrate the **UPayments Web SDK** in a modern React application using `@upayments-kw/react`.
+
+> [!NOTE]
+> React applications only need to install `@upayments-kw/react`. It re-exports all required SDK classes, methods, and TypeScript definitions.
 
 ## Features
-- **UAPI Authentication**: Connects using merchant Bearer API token.
+- **All-in-one React Package**: Only `@upayments-kw/react` is required.
+- **Automated Bearer Auth**: Pass `token: '...'` directly without needing `{ type: 'bearer' }`.
 - **Payment Methods Supported**:
   - `apple_pay` (Apple Pay)
   - `apple_pay_knet` (Apple Pay KNET Debit)
+  - *Credit Card & KNET Direct: Coming Soon*
 - **UI Components**:
   - `<PaymentMethods />`: Unified multi-method responsive container.
   - `<ApplePayButton />`: Standalone customized Apple Pay button.
@@ -30,11 +35,11 @@ npm run dev
 pnpm dev
 ```
 
-The app will start at `https://localhost:5173`. Open this URL in **Safari on macOS or iOS** (with a configured Apple Pay wallet).
+The app will start at `https://localhost:5173`. Open this URL in **Safari on macOS or iOS** (with an active card in Apple Wallet).
 
 ### 3. Usage & Testing
 1. Select your target environment (**Sandbox** or **Production**).
-2. Enter your merchant **Bearer API Token**.
+2. Enter your merchant **API Bearer Token**.
 3. Click **Apply & Initialize SDK**.
 4. Test initiating payment using the **Grouped Element** or **Standalone Apple Pay Button**.
 
@@ -44,80 +49,88 @@ The app will start at `https://localhost:5173`. Open this URL in **Safari on mac
 
 ```tsx
 import React, { useEffect, useState } from 'react';
-import { UPayments, type PayOptions } from '@upayments-kw/web-sdk';
-import { PaymentMethods } from '@upayments-kw/react';
+import {
+  UPayments,
+  PaymentMethods,
+  type PaymentMethodId,
+  type PayOptions,
+} from '@upayments-kw/react';
 
 export const Checkout = () => {
-  const [sdk, setSdk] = useState<UPayments<'uapi'> | null>(null);
+  const [sdk, setSdk] = useState<UPayments | null>(null);
+  const [availableMethods, setAvailableMethods] = useState<PaymentMethodId[]>([]);
 
   useEffect(() => {
     async function init() {
       const instance = UPayments.create({
-        from: 'uapi',
         environment: 'sandbox', // or 'production'
-        auth: {
-          type: 'bearer',
-          token: 'YOUR_MERCHANT_BEARER_TOKEN',
-        },
+        token: 'YOUR_MERCHANT_BEARER_TOKEN',
       });
 
       await instance.initialize();
       setSdk(instance);
+      setAvailableMethods(instance.getAvailablePaymentMethods());
     }
 
     init();
   }, []);
 
-  const handlePayment = async (method: string) => {
+  const handlePay = async (method: PaymentMethodId) => {
     if (!sdk) return;
 
-    const payload: PayOptions<'uapi'>['payload'] = {
-      amount: 25.0,
-      products: [
-        {
-          name: 'Item Title',
-          description: 'Description',
-          price: 25.0,
-          quantity: 1,
-        },
-      ],
-      order: {
-        id: 'ORD_12345',
-        reference: 'ORD_12345',
-        description: 'Order Payment',
-        currency: 'KWD',
+    try {
+      const payload: PayOptions['payload'] = {
         amount: 25.0,
-      },
-      language: 'en',
-      customer: {
-        uniqueId: 'cust_001',
-        name: 'Customer Name',
-        mobile: '+96560000000',
-        email: 'customer@example.com',
-      },
-      returnUrl: 'https://yourdomain.com/order-success',
-      cancelUrl: 'https://yourdomain.com/order-cancel',
-      notificationUrl: 'https://api.yourdomain.com/webhook',
-    };
+        products: [
+          { name: 'Classic Sneakers', price: 25.0, quantity: 1 },
+        ],
+        order: {
+          id: `ORD_${Date.now()}`,
+          description: 'Payment for Order #10024',
+          currency: 'KWD',
+          amount: 25.0,
+        },
+        customer: {
+          uniqueId: 'cust_987',
+          name: 'Ahmed Al-Sabah',
+          mobile: '+96560000000',
+          email: 'ahmed@example.com',
+        },
+        returnUrl: `${window.location.origin}/orders/success`,
+        cancelUrl: `${window.location.origin}/orders/cancel`,
+        notificationUrl: 'https://api.yourstore.com/webhooks/upayments',
+      };
 
-    const result = await sdk.pay({
-      paymentMethod: method,
-      payload,
-    });
+      const result = await sdk.pay({
+        paymentMethod: method,
+        payload,
+      });
 
-    console.log('Payment result:', result);
+      console.log('Payment Success:', result);
+      window.location.href = '/orders/success';
+    } catch (error) {
+      console.error('Payment Failed:', error);
+    }
   };
 
   return (
-    <div>
-      <h2>Complete Purchase</h2>
-      {sdk && (
+    <div style={{ maxWidth: 480, margin: '2rem auto' }}>
+      <h2>Complete Checkout</h2>
+      {sdk ? (
         <PaymentMethods
-          availableMethods={['apple_pay', 'apple_pay_knet']}
-          onMethodSelected={(method) => handlePayment(method)}
+          availableMethods={availableMethods}
+          onMethodSelected={handlePay}
         />
+      ) : (
+        <p>Loading payment methods...</p>
       )}
     </div>
   );
 };
 ```
+
+---
+
+## Support & Documentation
+- **Developer Documentation**: [https://developers.upayments.com](https://developers.upayments.com)
+- **Technical Support**: [support@upayments.com](mailto:support@upayments.com)

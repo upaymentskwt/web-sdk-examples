@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import { UPayments, type PaymentMethodId, type PayOptions } from '@upayments-kw/web-sdk';
-import { PaymentMethods, ApplePayButton } from '@upayments-kw/react';
+import {
+  UPayments,
+  PaymentMethods,
+  ApplePayButton,
+  type PaymentMethodId,
+  type PayOptions,
+} from '@upayments-kw/react';
 
 type Environment = 'sandbox' | 'production';
 
@@ -32,14 +37,11 @@ export const App: React.FC = () => {
       setStatus(`Initializing SDK (${env})...`);
       addLog(`Initializing UPayments SDK in ${env} mode...`);
 
-      // Initialize UPayments SDK in UAPI mode
+      // Initialize UPayments SDK
       const instance = UPayments.create({
         from: 'uapi',
         environment: env,
-        auth: {
-          type: 'bearer',
-          token: trimmedToken,
-        },
+        token: trimmedToken,
         debug: true,
       });
 
@@ -86,9 +88,9 @@ export const App: React.FC = () => {
   };
 
   /**
-   * Build UAPI Create Payment Payload
+   * Build Create Payment Payload
    */
-  const buildUapiPayload = (currentAmount: number): PayOptions<'uapi'>['payload'] => {
+  const buildUapiPayload = (currentAmount: number): PayOptions['payload'] => {
     const orderId = `ORD_${Date.now()}`;
     let domainName = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     if (domainName.match(/localhost/)) domainName = 'sdkweb.upaytest.com';
@@ -162,7 +164,7 @@ export const App: React.FC = () => {
           UPayments Web SDK
         </h1>
         <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.875rem' }}>
-          Merchant Example Application (UAPI Integration)
+          Merchant Example Application (React + Vite)
         </p>
       </header>
 
@@ -261,7 +263,7 @@ export const App: React.FC = () => {
               type="password"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder="Paste your UAPI Bearer Token here"
+              placeholder="Paste your API Bearer Token here"
               style={{
                 width: '100%',
                 padding: '8px 10px',

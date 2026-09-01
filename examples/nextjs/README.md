@@ -1,13 +1,14 @@
-# UPayments Web SDK - Next.js Example (UAPI)
+# UPayments Web SDK - Next.js Example
 
-This example demonstrates how to integrate the **UPayments Web SDK** and **React Components** into a modern **Next.js (App Router)** application.
+This example demonstrates how to integrate the **UPayments Web SDK** into a modern **Next.js (App Router)** application using `@upayments-kw/react`.
 
 ---
 
 ## Features
 
-- **Next.js App Router**: Client-side payment integration with `ssr: false` dynamic loading for Apple Pay and Web SDK.
-- **Unified UAPI integration**: Accepts online payments using merchant UAPI credentials.
+- **Next.js App Router**: Client-side payment integration with `ssr: false` dynamic loading for Apple Pay.
+- **Single Dependency**: Only `@upayments-kw/react` is required.
+- **Automated Bearer Auth**: Simply pass `token: '...'` during initialization.
 - **Apple Pay & Apple Pay KNET**: Automatic detection and rendering of supported payment options.
 - **Local HTTPS Ready**: Pre-configured with Next.js experimental HTTPS support (`next dev --experimental-https`) for testing Apple Pay locally.
 
@@ -17,7 +18,6 @@ This example demonstrates how to integrate the **UPayments Web SDK** and **React
 
 ### 1. Install Dependencies
 
-From the root workspace directory or within `examples/nextjs`:
 ```bash
 pnpm install
 ```
@@ -40,15 +40,20 @@ The Next.js app will start at `https://localhost:3000`.
 
 ### 1. Dynamic Client Component Import (`app/page.tsx`)
 
-Because Apple Pay and DOM Custom Elements require browser APIs (`window`, `ApplePaySession`), import the checkout component dynamically with `ssr: false`:
+Because Apple Pay and DOM elements require browser APIs (`window`, `ApplePaySession`), import the checkout component dynamically with `ssr: false`:
 
 ```tsx
 // app/page.tsx
+'use client';
+
 import dynamic from 'next/dynamic';
 
 const CheckoutClient = dynamic(
   () => import('../components/CheckoutClient').then((mod) => mod.CheckoutClient),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => <p>Loading checkout...</p>,
+  }
 );
 
 export default function HomePage() {
@@ -60,34 +65,31 @@ export default function HomePage() {
 }
 ```
 
-### 2. Initializing UPayments & Initiating Payment (`components/CheckoutClient.tsx`)
+### 2. Client Checkout Component (`components/CheckoutClient.tsx`)
 
 ```tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { UPayments, type PaymentMethodId, type PayOptions } from '@upayments-kw/web-sdk';
-import { PaymentMethods } from '@upayments-kw/react';
+import {
+  UPayments,
+  PaymentMethods,
+  type PaymentMethodId,
+  type PayOptions,
+} from '@upayments-kw/react';
 
-export const CheckoutClient: React.FC = () => {
-  const [sdk, setSdk] = useState<UPayments<'uapi'> | null>(null);
+export const CheckoutClient = () => {
+  const [sdk, setSdk] = useState<UPayments | null>(null);
   const [availableMethods, setAvailableMethods] = useState<PaymentMethodId[]>([]);
 
   useEffect(() => {
     async function init() {
-      // 1. Initialize SDK
       const instance = UPayments.create({
-        from: 'uapi',
-        environment: 'sandbox', // 'sandbox' or 'production'
-        auth: {
-          type: 'bearer',
-          token: 'YOUR_MERCHANT_BEARER_TOKEN',
-        },
+        environment: 'sandbox', // or 'production'
+        token: 'YOUR_MERCHANT_BEARER_TOKEN',
       });
 
-      // 2. Await initialization handshake
       await instance.initialize();
-
       setSdk(instance);
       setAvailableMethods(instance.getAvailablePaymentMethods());
     }
@@ -95,55 +97,44 @@ export const CheckoutClient: React.FC = () => {
     init();
   }, []);
 
-  const handlePayment = async (method: PaymentMethodId) => {
+  const handlePay = async (method: PaymentMethodId) => {
     if (!sdk) return;
 
-    const payload: PayOptions<'uapi'>['payload'] = {
-      amount: 25.0,
-      products: [
-        {
-          name: 'Demo Product',
-          description: 'Example product item',
-          price: 25.0,
-          quantity: 1,
-        },
-      ],
-      order: {
-        id: `ORD_${Date.now()}`,
-        reference: `REF_${Date.now()}`,
-        description: 'Payment for Order #10024',
-        currency: 'KWD',
+    try {
+      const payload: PayOptions['payload'] = {
         amount: 25.0,
-      },
-      language: 'en',
-      customer: {
-        uniqueId: 'cust_987',
-        name: 'Ahmed Al-Sabah',
-        mobile: '+96560000000',
-        email: 'ahmed@example.com',
-      },
-      returnUrl: `${window.location.origin}/return`,
-      cancelUrl: `${window.location.origin}/cancel`,
-      notificationUrl: 'https://api.yourstore.com/webhooks/upayments',
-      domainName: window.location.hostname,
-      isSaveCard: false,
-    };
+        products: [
+          { name: 'Subscription Plan', price: 25.0, quantity: 1 },
+        ],
+        order: {
+          id: `ORD_${Date.now()}`,
+          description: 'Payment for Order #10024',
+          currency: 'KWD',
+          amount: 25.0,
+        },
+        customer: {
+          name: 'Ahmed Al-Sabah',
+          mobile: '+96560000000',
+          email: 'ahmed@example.com',
+        },
+        returnUrl: `${window.location.origin}/orders/success`,
+        cancelUrl: `${window.location.origin}/orders/cancel`,
+      };
 
-    const result = await sdk.pay({
-      paymentMethod: method,
-      payload,
-    });
-
-    console.log('Payment result:', result);
+      const result = await sdk.pay({ paymentMethod: method, payload });
+      console.log('Payment Success:', result);
+    } catch (error) {
+      console.error('Payment Failed:', error);
+    }
   };
 
   return (
-    <div>
-      <h2>Complete Purchase</h2>
+    <div style={{ maxWidth: 480, margin: '2rem auto' }}>
+      <h2>Next.js Checkout</h2>
       {sdk ? (
         <PaymentMethods
           availableMethods={availableMethods}
-          onMethodSelected={(method) => handlePayment(method)}
+          onMethodSelected={handlePay}
         />
       ) : (
         <p>Loading payment methods...</p>
@@ -152,3 +143,9 @@ export const CheckoutClient: React.FC = () => {
   );
 };
 ```
+
+---
+
+## Support & Documentation
+- **Developer Documentation**: [https://developers.upayments.com](https://developers.upayments.com)
+- **Technical Support**: [support@upayments.com](mailto:support@upayments.com)

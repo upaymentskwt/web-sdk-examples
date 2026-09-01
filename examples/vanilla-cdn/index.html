@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UPayments Web SDK (UAPI) - HTML / CDN Example</title>
+    <title>UPayments Web SDK - HTML / CDN Example</title>
 
     <!-- Load UPayments Web SDK via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@upayments-kw/web-sdk/dist/upayments.js"></script>
@@ -120,7 +120,7 @@
     <div class="container">
       <header>
         <h1>UPayments Web SDK</h1>
-        <p class="subtitle">Vanilla HTML / CDN Example (UAPI)</p>
+        <p class="subtitle">Vanilla HTML / CDN Example</p>
       </header>
 
       <!-- Configuration Card -->
@@ -143,7 +143,7 @@
 
           <div class="form-group">
             <label for="token-input">Merchant Bearer API Token:</label>
-            <input id="token-input" type="password" placeholder="Paste your UAPI Bearer Token here" />
+            <input id="token-input" type="password" placeholder="Paste your API Bearer Token here" />
           </div>
 
           <button type="submit" class="btn-primary">Apply &amp; Initialize SDK</button>
@@ -208,7 +208,7 @@
         logConsole.innerHTML = '<span style="color: #64748b;">No events recorded yet.</span>';
       });
 
-      function buildUapiPayload(amount) {
+      function buildPaymentPayload(amount) {
         const orderId = 'ORD_' + Date.now();
         return {
           amount: Number(amount),
@@ -252,7 +252,7 @@
         addLog(`Initiating payment for ${paymentMethod} (${currentAmount} KWD)...`);
 
         try {
-          const payload = buildUapiPayload(currentAmount);
+          const payload = buildPaymentPayload(currentAmount);
           const result = await sdkInstance.pay({
             paymentMethod,
             payload,
@@ -298,10 +298,7 @@
           const config = {
             from: 'uapi',
             environment: env,
-            auth: {
-              type: 'bearer',
-              token: trimmedToken,
-            },
+            token: trimmedToken,
             debug: true,
           };
 

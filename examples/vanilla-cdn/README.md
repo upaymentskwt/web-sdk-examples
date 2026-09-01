@@ -1,14 +1,15 @@
-# Vanilla HTML / CDN Example (UAPI)
+# Vanilla HTML / CDN Example
 
 This example demonstrates how to integrate the **UPayments Web SDK** in plain HTML and JavaScript using a CDN script tag.
 
 ## Features
 - **Zero Build Tools Required**: Works with standard HTML and modern browser JavaScript.
-- **UAPI Authentication**: Authenticates with merchant Bearer API Token.
+- **Automated Bearer Auth**: Simply pass `token: '...'`.
 - **Web Component**: Uses the custom element `<upayments-payment-methods>` for automatic rendering.
 - **Payment Methods Supported**:
   - `apple_pay` (Apple Pay)
   - `apple_pay_knet` (Apple Pay KNET Debit)
+  - *Credit Card & KNET Direct: Coming Soon*
 
 ---
 
@@ -55,53 +56,48 @@ The app will start at `https://localhost:5174` (with HTTPS enabled via `@vitejs/
     // 3. Initialize SDK
     async function init() {
       const sdk = window.UPayments.create({
-        from: 'uapi',
         environment: 'sandbox', // or 'production'
-        auth: {
-          type: 'bearer',
-          token: 'YOUR_MERCHANT_BEARER_TOKEN'
-        }
+        token: 'YOUR_MERCHANT_BEARER_TOKEN', // Automatically handled as Bearer
       });
 
       await sdk.initialize();
 
-      // 4. Attach SDK to UI element
-      const el = document.getElementById('payment-methods-el');
-      el.sdk = sdk;
+      // 4. Attach SDK to element
+      const element = document.getElementById('payment-methods-el');
+      element.sdk = sdk;
+
+      // 5. Listen for payment selection
+      element.addEventListener('upay:payment-method-selected', async (e) => {
+        const method = e.detail.paymentMethod;
+
+        try {
+          const result = await sdk.pay({
+            paymentMethod: method,
+            payload: {
+              amount: 25.0,
+              products: [{ name: 'Product Name', price: 25.0, quantity: 1 }],
+              order: { id: 'ORD_' + Date.now(), currency: 'KWD', amount: 25.0 },
+              customer: { name: 'Customer Name', email: 'customer@example.com', mobile: '+96560000000' },
+              returnUrl: window.location.origin + '/success',
+              cancelUrl: window.location.origin + '/cancel',
+            }
+          });
+
+          console.log('Payment result:', result);
+        } catch (err) {
+          console.error('Payment failed:', err);
+        }
+      });
     }
+
     init();
-
-    // 5. Handle payment method selection
-    el.addEventListener('upay:payment-method-selected', async (e) => {
-      const selectedMethod = e.detail.paymentMethod;
-
-      try {
-        const result = await sdk.pay({
-          paymentMethod: selectedMethod,
-          payload: {
-            amount: 15.0,
-            products: [{ name: 'Test Product', price: 15.0, quantity: 1 }],
-            order: {
-              id: 'ORD_' + Date.now(),
-              currency: 'KWD',
-              amount: 15.0
-            },
-            customer: {
-              name: 'John Doe',
-              email: 'john@example.com',
-              mobile: '+96560000000'
-            },
-            returnUrl: 'https://yourdomain.com/success',
-            cancelUrl: 'https://yourdomain.com/cancel'
-          }
-        });
-
-        console.log('Payment result:', result);
-      } catch (err) {
-        console.error('Payment error:', err);
-      }
-    });
   </script>
 </body>
 </html>
 ```
+
+---
+
+## Support & Documentation
+- **Developer Documentation**: [https://developers.upayments.com](https://developers.upayments.com)
+- **Technical Support**: [support@upayments.com](mailto:support@upayments.com)

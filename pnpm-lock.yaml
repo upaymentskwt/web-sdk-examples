@@ -13,9 +13,6 @@ importers:
       '@upayments-kw/react':
         specifier: ^1.0.0-alpha.7
         version: 1.0.0-alpha.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@upayments-kw/web-sdk':
-        specifier: ^1.0.0-alpha.7
-        version: 1.0.0-alpha.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       next:
         specifier: ^14.2.15
         version: 14.2.35(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -42,9 +39,6 @@ importers:
   examples/react-vite:
     dependencies:
       '@upayments-kw/react':
-        specifier: ^1.0.0-alpha.7
-        version: 1.0.0-alpha.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@upayments-kw/web-sdk':
         specifier: ^1.0.0-alpha.7
         version: 1.0.0-alpha.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:

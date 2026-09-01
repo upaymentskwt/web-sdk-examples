@@ -1,8 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UPayments, type PaymentMethodId, type PayOptions } from '@upayments-kw/web-sdk';
-import { PaymentMethods, ApplePayButton } from '@upayments-kw/react';
+import {
+  UPayments,
+  PaymentMethods,
+  ApplePayButton,
+  type PaymentMethodId,
+  type PayOptions,
+} from '@upayments-kw/react';
 
 type Environment = 'sandbox' | 'production';
 
@@ -34,14 +39,11 @@ export const CheckoutClient: React.FC = () => {
       setStatus(`Initializing SDK (${env})...`);
       addLog(`Initializing UPayments SDK in ${env} mode...`);
 
-      // Initialize UPayments SDK in UAPI mode
+      // Initialize UPayments SDK
       const instance = UPayments.create({
         from: 'uapi',
         environment: env,
-        auth: {
-          type: 'bearer',
-          token: trimmedToken,
-        },
+        token: trimmedToken,
         debug: true,
       });
 
@@ -87,9 +89,9 @@ export const CheckoutClient: React.FC = () => {
   };
 
   /**
-   * Constructs the UAPI payment request payload.
+   * Constructs the payment request payload.
    */
-  const buildUapiPayload = (currentAmount: number): PayOptions<'uapi'>['payload'] => {
+  const buildPaymentPayload = (currentAmount: number): PayOptions<'uapi'>['payload'] => {
     const orderId = `ORD_${Date.now()}`;
     let domainName = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     if (domainName.match(/localhost/)) domainName = 'sdkweb.upaytest.com';
@@ -144,7 +146,7 @@ export const CheckoutClient: React.FC = () => {
     addLog(`Initiating payment for ${method} (${amount} KWD)...`);
 
     try {
-      const payload = buildUapiPayload(amount);
+      const payload = buildPaymentPayload(amount);
       const result = await sdk.pay({
         paymentMethod: method,
         payload,
@@ -164,8 +166,8 @@ export const CheckoutClient: React.FC = () => {
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem', color: '#0f172a' }}>
           UPayments Web SDK (Next.js Example)
         </h1>
-        <p style={{ color: '#64748b', margin: 0, fontSize: '0.925rem' }}>
-          Next.js App Router merchant integration for UAPI with Apple Pay &amp; Apple Pay KNET
+        <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.875rem' }}>
+          Next.js App Router merchant integration with Apple Pay &amp; Apple Pay KNET
         </p>
       </header>
 
@@ -180,8 +182,8 @@ export const CheckoutClient: React.FC = () => {
           marginBottom: '1.5rem',
         }}
       >
-        <h2 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 1rem', color: '#1e293b' }}>
-          Merchant Configuration (UAPI)
+        <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginBottom: '1rem' }}>
+          Merchant Configuration
         </h2>
 
         <form onSubmit={handleApplyConfig}>
@@ -262,7 +264,7 @@ export const CheckoutClient: React.FC = () => {
               type="password"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder="Enter your UAPI Bearer Token"
+              placeholder="Enter your API Bearer Token"
               style={{
                 width: '100%',
                 padding: '8px 10px',

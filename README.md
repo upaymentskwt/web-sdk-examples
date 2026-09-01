@@ -1,53 +1,78 @@
-# UPayments Web SDK - Merchant Integration Examples (UAPI)
+# UPayments Web SDK - Merchant Integration Examples
 
-Welcome to the official **UPayments Web SDK** merchant examples repository. This repository contains ready-to-run example applications and a comprehensive integration guide for accepting online payments using the **UPayments UAPI** platform.
+Welcome to the official **UPayments Web SDK** merchant examples repository. This repository contains ready-to-run example applications and an end-to-end integration guide for accepting online payments using the UPayments platform.
 
 ---
 
 ## Supported Payment Methods
-The Web SDK natively integrates:
-- 🍎 **Apple Pay** (`apple_pay`): One-touch checkout for Apple devices (Safari on iOS & macOS).
-- 💳 **Apple Pay KNET** (`apple_pay_knet`): Apple Pay tailored specifically for Kuwait National Electronic Transfer (KNET) debit card processing.
+
+- **Apple Pay** (`apple_pay`): One-touch checkout for Apple devices (Safari on iOS & macOS).
+- **Apple Pay KNET** (`apple_pay_knet`): Apple Pay tailored specifically for Kuwait National Electronic Transfer (KNET) debit card processing.
+- **Credit/Debit Cards & Direct KNET**: *Coming Soon in next release*.
 
 ---
 
 ## Table of Contents
-1. [Prerequisites](#prerequisites)
-2. [Apple Pay Domain Verification](#apple-pay-domain-verification)
+1. [Requirements & Prerequisites](#requirements--prerequisites)
+2. [UI Component Previews](#ui-component-previews)
 3. [Example Applications](#example-applications)
 4. [Integration Guide](#integration-guide)
    - [A. React Integration](#a-react-integration)
-   - [B. Vanilla JavaScript & HTML (CDN)](#b-vanilla-javascript--html-cdn)
-5. [UAPI Payment Payload Reference](#uapi-payment-payload-reference)
-6. [SDK Events & Lifecycle](#sdk-events--lifecycle)
-7. [Local Testing with HTTPS](#local-testing-with-https)
+   - [B. Next.js (App Router) & SSR](#b-nextjs-app-router--ssr)
+   - [C. Vanilla JavaScript & HTML (CDN)](#c-vanilla-javascript--html-cdn)
+5. [Events & Callbacks Reference](#events--callbacks-reference)
+6. [Payment Payload Reference](#payment-payload-reference)
+7. [Apple Pay Domain Verification](#apple-pay-domain-verification)
 8. [Troubleshooting & FAQ](#troubleshooting--faq)
+9. [Support & Documentation](#support--documentation)
 
 ---
 
-## Prerequisites
+## Requirements & Prerequisites
 
-Before integrating, ensure you have:
-1. **UPayments Merchant Account**:
-   - Access to the [UPayments Merchant Dashboard](https://merchant.upayments.com).
-2. **API Credentials**:
-   - **Bearer API Token** for the **UAPI** service.
-   - Separate tokens are issued for **Sandbox (Testing)** and **Production (Live)** environments.
-3. **Registered Domain for Apple Pay**:
-   - Apple requires all domains processing Apple Pay transactions to be verified by Apple and hosted over HTTPS.
+| Requirement | Minimum Version / Specification | Details |
+|---|---|---|
+| **Node.js** | `>= 18.0.0` | Required for building React & Next.js applications. |
+| **React / React DOM** | `>= 18.0.0` | Minimum version for `@upayments-kw/react`. |
+| **Browsers** | Safari 13+ (macOS / iOS) | Required for Apple Pay web sheets. |
+| **HTTPS Protocol** | Valid SSL / TLS Certificate | Required by Apple for Apple Pay transactions (except `localhost`). |
+| **Domain Association** | Apple Merchant ID Association | File must be hosted at `https://yourdomain.com/.well-known/apple-developer-merchantid-domain-association`. |
+| **Merchant Credentials** | API Bearer Token | Obtained from the [UPayments Merchant Dashboard](https://merchant.upayments.com). |
 
 ---
 
-## Apple Pay Domain Verification
+## UI Component Previews
 
-To enable Apple Pay on your domain:
-1. Contact UPayments support or configure your merchant dashboard to register your web domain (e.g. `yourstore.com`).
-2. Download the Apple domain association file provided by UPayments.
-3. Host the file on your public web server at:
-   ```
-   https://yourstore.com/.well-known/apple-developer-merchantid-domain-association
-   ```
-4. Verify that the URL returns the raw association file over valid HTTPS.
+### 1. Group Payment Container (`<PaymentMethods />`)
+Displays all payment methods currently enabled and verified for the merchant and customer device.
+
+```
+┌───────────────────────────────────────────────────────────┐
+│  Payment Methods                                          │
+│                                                           │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │                     Pay                        │  │  <-- Apple Pay
+│  └─────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │                 Pay  |  KNET                   │  │  <-- Apple Pay KNET
+│  └─────────────────────────────────────────────────────┘  │
+│                                                           │
+│  [ Credit / Debit Card (Coming Soon) ]                    │
+└───────────────────────────────────────────────────────────┘
+```
+
+### 2. Standalone Apple Pay Button (`<ApplePayButton />`)
+Direct branded button for express single-click checkout.
+
+```
+┌───────────────────────────────────────────────┐
+│                      Pay                 │  (Default / Black)
+└───────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────┐
+│                      Pay                 │  (White with line)
+└───────────────────────────────────────────────┘
+```
 
 ---
 
@@ -57,9 +82,9 @@ This repository contains ready-to-run example implementations:
 
 | Directory | Framework | Description |
 |---|---|---|
-| [`examples/react-vite`](./examples/react-vite) | **React + Vite** | Complete React integration using `@upayments-kw/react` and `@upayments-kw/web-sdk`. |
-| [`examples/nextjs`](./examples/nextjs) | **Next.js (App Router)** | Next.js 14 App Router integration with client components and Apple Pay. |
-| [`examples/vanilla-cdn`](./examples/vanilla-cdn) | **HTML + Vanilla JS** | Zero-build integration using the CDN script tag and Web Components. |
+| [`examples/react-vite`](./examples/react-vite) | **React + Vite** | Complete React integration using `@upayments-kw/react`. |
+| [`examples/nextjs`](./examples/nextjs) | **Next.js (App Router)** | Next.js 14 App Router integration with client components. |
+| [`examples/vanilla-cdn`](./examples/vanilla-cdn) | **HTML + Vanilla JS** | Zero-build integration using CDN script tag. |
 
 ### Running Examples Locally
 
@@ -91,37 +116,41 @@ All examples start with local **HTTPS** enabled (required for Apple Pay sheet re
 
 ### A. React Integration
 
-#### 1. Install packages
+React users only need to install `@upayments-kw/react`. **Do not install `@upayments-kw/web-sdk` separately**, as `@upayments-kw/react` already includes and re-exports everything required.
+
+#### 1. Install Package
 ```bash
-npm install @upayments-kw/web-sdk @upayments-kw/react
+npm install @upayments-kw/react
 # or
-pnpm add @upayments-kw/web-sdk @upayments-kw/react
+pnpm add @upayments-kw/react
 ```
 
-#### 2. Initialize SDK & Render Payment Element
+#### 2. Group Payments Usage (`<PaymentMethods />`)
+
 ```tsx
 import React, { useEffect, useState } from 'react';
-import { UPayments, type PaymentMethodId, type PayOptions } from '@upayments-kw/web-sdk';
-import { PaymentMethods, ApplePayButton } from '@upayments-kw/react';
+import {
+  UPayments,
+  PaymentMethods,
+  type PaymentMethodId,
+  type PayOptions,
+} from '@upayments-kw/react';
 
 export const CheckoutPage = () => {
-  const [sdk, setSdk] = useState<UPayments<'uapi'> | null>(null);
+  const [sdk, setSdk] = useState<UPayments | null>(null);
+  const [availableMethods, setAvailableMethods] = useState<PaymentMethodId[]>([]);
 
   useEffect(() => {
     async function init() {
-      // 1. Initialize SDK in UAPI mode
+      // 1. Initialize SDK (Bearer token is handled automatically)
       const instance = UPayments.create({
-        from: 'uapi',
         environment: 'sandbox', // 'sandbox' or 'production'
-        auth: {
-          type: 'bearer',
-          token: 'YOUR_MERCHANT_BEARER_TOKEN',
-        },
-        debug: false,
+        token: 'YOUR_MERCHANT_API_TOKEN',
       });
 
       await instance.initialize();
       setSdk(instance);
+      setAvailableMethods(instance.getAvailablePaymentMethods());
     }
 
     init();
@@ -131,8 +160,7 @@ export const CheckoutPage = () => {
     if (!sdk) return;
 
     try {
-      // 2. Prepare order payload
-      const payload: PayOptions<'uapi'>['payload'] = {
+      const payload: PayOptions['payload'] = {
         amount: 25.0,
         products: [
           {
@@ -156,12 +184,11 @@ export const CheckoutPage = () => {
           mobile: '+96560000000',
           email: 'ahmed@example.com',
         },
-        returnUrl: 'https://yourstore.com/orders/success',
-        cancelUrl: 'https://yourstore.com/orders/cancel',
+        returnUrl: `${window.location.origin}/orders/success`,
+        cancelUrl: `${window.location.origin}/orders/cancel`,
         notificationUrl: 'https://api.yourstore.com/webhooks/upayments',
       };
 
-      // 3. Initiate payment
       const result = await sdk.pay({
         paymentMethod: method,
         payload,
@@ -179,8 +206,8 @@ export const CheckoutPage = () => {
       <h2>Complete Checkout</h2>
       {sdk ? (
         <PaymentMethods
-          availableMethods={['apple_pay', 'apple_pay_knet']}
-          onMethodSelected={(method) => handlePay(method)}
+          availableMethods={availableMethods}
+          onMethodSelected={handlePay}
         />
       ) : (
         <p>Loading payment methods...</p>
@@ -190,30 +217,130 @@ export const CheckoutPage = () => {
 };
 ```
 
+#### 3. Standalone Payment Method Usage (`<ApplePayButton />`)
+
+```tsx
+import React, { useEffect, useState } from 'react';
+import {
+  UPayments,
+  ApplePayButton,
+  type PayOptions,
+} from '@upayments-kw/react';
+
+export const StandalonePayment = () => {
+  const [sdk, setSdk] = useState<UPayments | null>(null);
+
+  useEffect(() => {
+    async function init() {
+      const instance = UPayments.create({
+        environment: 'sandbox',
+        token: 'YOUR_MERCHANT_API_TOKEN',
+      });
+      await instance.initialize();
+      setSdk(instance);
+    }
+    init();
+  }, []);
+
+  const handleApplePay = async () => {
+    if (!sdk) return;
+
+    const payload: PayOptions['payload'] = {
+      amount: 15.0,
+      products: [{ name: 'Espresso Beans', price: 15.0, quantity: 1 }],
+      order: {
+        id: `ORD_${Date.now()}`,
+        currency: 'KWD',
+        amount: 15.0,
+      },
+      customer: {
+        name: 'Sara Ahmad',
+        mobile: '+96590000000',
+        email: 'sara@example.com',
+      },
+      returnUrl: `${window.location.origin}/orders/success`,
+      cancelUrl: `${window.location.origin}/orders/cancel`,
+    };
+
+    await sdk.pay({ paymentMethod: 'apple_pay', payload });
+  };
+
+  return (
+    <div>
+      <h3>Express Apple Pay</h3>
+      <ApplePayButton
+        buttonType="buy"
+        buttonStyle="black"
+        onClick={handleApplePay}
+      />
+    </div>
+  );
+};
+```
+
 ---
 
-### B. Vanilla JavaScript & HTML (CDN)
+### B. Next.js (App Router) & SSR
+
+#### SSR Compatibility
+The SDK is designed to be SSR-safe: importing `@upayments-kw/react` will not break Node.js server pre-rendering. However, payment sheets (such as `window.ApplePaySession`) and interactive payment buttons require a client-side browser runtime.
+
+In Next.js App Router, render your checkout inside a client component dynamically imported with `{ ssr: false }`:
+
+```tsx
+// app/page.tsx
+'use client';
+
+import dynamic from 'next/dynamic';
+
+const CheckoutClient = dynamic(
+  () => import('../components/CheckoutClient').then((mod) => mod.CheckoutClient),
+  {
+    ssr: false,
+    loading: () => <p>Loading checkout...</p>,
+  }
+);
+
+export default function HomePage() {
+  return (
+    <main>
+      <CheckoutClient />
+    </main>
+  );
+}
+```
+
+In `next.config.mjs`:
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  transpilePackages: ['@upayments-kw/react'],
+};
+
+export default nextConfig;
+```
+
+---
+
+### C. Vanilla JavaScript & HTML (CDN)
 
 #### 1. Include Script in your HTML
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@upayments-kw/web-sdk/dist/upayments.js"></script>
 ```
 
-#### 2. Add UI Container and JavaScript
+#### 2. Container & Initialization
 ```html
 <!-- Payment Container Web Component -->
 <upayments-payment-methods id="payment-methods-element"></upayments-payment-methods>
 
 <script>
   async function startCheckout() {
-    // 1. Initialize SDK
+    // 1. Initialize SDK — token is automatically handled as Bearer
     const sdk = window.UPayments.create({
-      from: 'uapi',
-      environment: 'sandbox', // 'sandbox' or 'production'
-      auth: {
-        type: 'bearer',
-        token: 'YOUR_MERCHANT_BEARER_TOKEN'
-      }
+      environment: 'sandbox',
+      token: 'YOUR_MERCHANT_API_TOKEN'
     });
 
     await sdk.initialize();
@@ -224,44 +351,61 @@ export const CheckoutPage = () => {
 
     // 3. Listen for method click and trigger payment
     element.addEventListener('upay:payment-method-selected', async (event) => {
-    const selectedMethod = event.detail.paymentMethod;
+      const selectedMethod = event.detail.paymentMethod;
 
-    try {
-      const response = await sdk.pay({
-        paymentMethod: selectedMethod,
-        payload: {
-          amount: 50.0,
-          products: [
-            { name: 'Leather Bag', price: 50.0, quantity: 1 }
-          ],
-          order: {
-            id: 'ORD_' + Date.now(),
-            currency: 'KWD',
-            amount: 50.0
-          },
-          customer: {
-            name: 'Fatima Al-Kandari',
-            email: 'fatima@example.com',
-            mobile: '+96590000000'
-          },
-          returnUrl: 'https://yourstore.com/checkout/complete',
-          cancelUrl: 'https://yourstore.com/checkout/cancel'
-        }
-      });
+      try {
+        const response = await sdk.pay({
+          paymentMethod: selectedMethod,
+          payload: {
+            amount: 50.0,
+            products: [
+              { name: 'Leather Bag', price: 50.0, quantity: 1 }
+            ],
+            order: {
+              id: 'ORD_' + Date.now(),
+              currency: 'KWD',
+              amount: 50.0
+            },
+            customer: {
+              name: 'Fatima Al-Kandari',
+              email: 'fatima@example.com',
+              mobile: '+96590000000'
+            },
+            returnUrl: window.location.origin + '/checkout/complete',
+            cancelUrl: window.location.origin + '/checkout/cancel'
+          }
+        });
 
-      console.log('Payment successful:', response);
-    } catch (err) {
-      console.error('Payment error:', err);
-    }
-  });
+        console.log('Payment successful:', response);
+      } catch (err) {
+        console.error('Payment error:', err);
+      }
+    });
+  }
+
+  startCheckout();
 </script>
 ```
 
 ---
 
-## UAPI Payment Payload Reference
+## Events & Callbacks Reference
 
-When calling `sdk.pay({ paymentMethod, payload })`, provide the following parameters:
+| Event Name | Trigger Condition | Payload Details |
+|---|---|---|
+| `upay:ready` | Fired when SDK has initialized, validated credentials, and identified available payment methods. | `{ availablePaymentMethods: PaymentMethodId[] }` |
+| `upay:payment-methods-loaded` | Fired when payment capabilities are received from the backend. | `{ availablePaymentMethods: PaymentMethodId[], merchantId: string }` |
+| `upay:payment-started` | Fired immediately when `sdk.pay()` is called and checkout flow starts. | `{ paymentMethod: PaymentMethodId }` |
+| `upay:payment-method-opened` | Fired when the payment sheet (e.g. Apple Pay native sheet) is presented to the user. | `{ paymentMethod: PaymentMethodId }` |
+| `upay:payment-processing` | Fired when the token is submitted to the gateway for capture. | `{ paymentMethod: PaymentMethodId }` |
+| `upay:payment-success` | Fired when payment is successfully captured and completed. | `{ paymentMethod: PaymentMethodId, result: PaymentResult }` |
+| `upay:payment-failed` | Fired when a payment attempt fails or is declined by the gateway/bank. | `{ paymentMethod: PaymentMethodId, error: SDKError }` |
+| `upay:payment-cancelled` | Fired when customer cancels or closes the payment sheet without authorizing. | `{ paymentMethod: PaymentMethodId }` |
+| `upay:error` | Fired when an initialization or runtime error occurs. | `SDKError` |
+
+---
+
+## Payment Payload Reference
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -269,50 +413,31 @@ When calling `sdk.pay({ paymentMethod, payload })`, provide the following parame
 | `order` | `object` | **Yes** | Contains `id`, `currency` (`"KWD"`), `amount`, and optional `description`. |
 | `products` | `array` | **Yes** | Array of product items (`name`, `price`, `quantity`, `description`). |
 | `customer` | `object` | **Yes** | Customer information (`name`, `email`, `mobile`, `uniqueId`). |
-| `returnUrl` | `string` | **Yes** | URL where the customer will be redirected upon payment completion. |
-| `cancelUrl` | `string` | **Yes** | URL where the customer will be redirected if payment is cancelled. |
+| `returnUrl` | `string` | **Yes** | URL where customer is redirected after successful payment. |
+| `cancelUrl` | `string` | **Yes** | URL where customer is redirected if payment is cancelled. |
 | `notificationUrl` | `string` | No | Server-to-server webhook endpoint for async payment status updates. |
 | `language` | `string` | No | Language code (`'en'` or `'ar'`). Defaults to `'en'`. |
 | `domainName` | `string` | No | Web domain initiating the transaction (defaults to `window.location.hostname`). |
 
 ---
 
-## SDK Events & Lifecycle
+## Apple Pay Domain Verification
 
-You can listen to lifecycle events emitted by the SDK:
-
-```typescript
-// Fired when payment adapters are verified and ready
-sdk.on('upay:ready', (data) => {
-  console.log('Available payment methods:', data.availablePaymentMethods);
-});
-
-// Fired if a fatal initialization or runtime error occurs
-sdk.on('upay:error', (error) => {
-  console.error('UPayments SDK Error:', error);
-});
-```
-
----
-
-## Local Testing with HTTPS
-
-Apple Pay requires an active **HTTPS** context and a supported Apple device (Safari on macOS with Apple Pay enabled, or Safari on iOS).
-
-Both example applications in this repository include `@vitejs/plugin-basic-ssl` to automatically start a local HTTPS development server:
-```bash
-pnpm dev:react
-# Starts at https://localhost:5173
-```
-
-When accessing `https://localhost:5173`, accept the self-signed developer certificate in Safari to test Apple Pay sheets locally.
+To enable Apple Pay on your domain:
+1. Register your web domain (e.g. `yourstore.com`) in the [UPayments Merchant Dashboard](https://merchant.upayments.com).
+2. Download the Apple domain association file provided by UPayments.
+3. Host the file on your public web server at:
+   ```
+   https://yourstore.com/.well-known/apple-developer-merchantid-domain-association
+   ```
+4. Verify that the URL returns the raw association file over valid HTTPS.
 
 ---
 
 ## Troubleshooting & FAQ
 
 #### Why is the Apple Pay button not showing up?
-1. Ensure you are running on **HTTPS**.
+1. Ensure your environment runs over **HTTPS**.
 2. Open the page in **Safari** on macOS or iOS.
 3. Verify that your device has an active card configured in Apple Wallet.
 4. Ensure your domain is registered in the UPayments Merchant Dashboard.
@@ -322,9 +447,13 @@ When accessing `https://localhost:5173`, accept the self-signed developer certif
 - `apple_pay_knet`: Specific routing for Kuwait KNET debit cards via Apple Pay.
 
 #### How do I switch to live production?
-Change the `environment` parameter in `UPayments.create` from `'sandbox'` to `'production'`, and provide your live Bearer API token.
+Change `environment` from `'sandbox'` to `'production'` in `UPayments.create()`, and provide your live Bearer API token.
 
 ---
 
 ## Support & Documentation
-For technical inquiries or merchant integration support, contact [support@upayments.com](mailto:support@upayments.com) or visit [upayments.com](https://upayments.com).
+
+- **Developer Documentation**: [https://developers.upayments.com](https://developers.upayments.com)
+- **Merchant Dashboard**: [https://merchant.upayments.com](https://merchant.upayments.com)
+- **Technical Support**: [support@upayments.com](mailto:support@upayments.com)
+- **Official Website**: [https://upayments.com](https://upayments.com)
