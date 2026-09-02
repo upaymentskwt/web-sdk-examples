@@ -53,6 +53,7 @@ import {
   UPayments,
   PaymentMethods,
   type PaymentMethodId,
+  type BoundPayHandler,
   type PayOptions,
 } from '@upayments-kw/react';
 
@@ -75,8 +76,8 @@ export const Checkout = () => {
     init();
   }, []);
 
-  const handlePay = async (method: PaymentMethodId) => {
-    if (!sdk) return;
+  const handlePay = async (method: PaymentMethodId, pay: BoundPayHandler) => {
+    if (!sdk || !pay) return;
 
     try {
       const payload: PayOptions['payload'] = {
@@ -101,10 +102,8 @@ export const Checkout = () => {
         notificationUrl: 'https://api.yourstore.com/webhooks/upayments',
       };
 
-      const result = await sdk.pay({
-        paymentMethod: method,
-        payload,
-      });
+      // Executes inside the user click gesture
+      const result = await pay({ payload });
 
       console.log('Payment Success:', result);
       window.location.href = '/orders/success';
@@ -118,6 +117,7 @@ export const Checkout = () => {
       <h2>Complete Checkout</h2>
       {sdk ? (
         <PaymentMethods
+          sdk={sdk}
           availableMethods={availableMethods}
           onMethodSelected={handlePay}
         />

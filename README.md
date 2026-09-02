@@ -332,7 +332,7 @@ export default nextConfig;
 #### 2. Container & Initialization
 ```html
 <!-- Payment Container Web Component -->
-<upayments-payment-methods id="payment-methods-element"></upayments-payment-methods>
+<upay-payment-methods id="payment-methods-element"></upay-payment-methods>
 
 <script>
   async function startCheckout() {
@@ -348,13 +348,12 @@ export default nextConfig;
     const element = document.getElementById('payment-methods-element');
     element.sdk = sdk;
 
-    // 3. Listen for method click and trigger payment
-    element.addEventListener('upay:payment-method-selected', async (event) => {
-      const selectedMethod = event.detail.paymentMethod;
+    // 3. Listen for method click and trigger payment via the user-gesture pay handler
+    element.addEventListener('upay:method-selected', async (event) => {
+      const { paymentMethod, pay } = event.detail;
 
       try {
-        const response = await sdk.pay({
-          paymentMethod: selectedMethod,
+        const response = await pay({
           payload: {
             amount: 50.0,
             products: [
@@ -394,7 +393,7 @@ export default nextConfig;
 |---|---|---|
 | `upay:ready` | Fired when SDK has initialized, validated credentials, and identified available payment methods. | `{ availablePaymentMethods: PaymentMethodId[] }` |
 | `upay:payment-methods-loaded` | Fired when payment capabilities are received from the backend. | `{ availablePaymentMethods: PaymentMethodId[], merchantId: string }` |
-| `upay:payment-started` | Fired immediately when `sdk.pay()` is called and checkout flow starts. | `{ paymentMethod: PaymentMethodId }` |
+| `upay:payment-started` | Fired immediately when payment authorization begins. | `{ paymentMethod: PaymentMethodId }` |
 | `upay:payment-method-opened` | Fired when the payment sheet (e.g. Apple Pay native sheet) is presented to the user. | `{ paymentMethod: PaymentMethodId }` |
 | `upay:payment-processing` | Fired when the token is submitted to the gateway for capture. | `{ paymentMethod: PaymentMethodId }` |
 | `upay:payment-success` | Fired when payment is successfully captured and completed. | `{ paymentMethod: PaymentMethodId, result: PaymentResult }` |

@@ -5,7 +5,7 @@ This example demonstrates how to integrate the **UPayments Web SDK** in plain HT
 ## Features
 - **Zero Build Tools Required**: Works with standard HTML and modern browser JavaScript.
 - **Automated Bearer Auth**: Simply pass `token: '...'`.
-- **Web Component**: Uses the custom element `<upayments-payment-methods>` for automatic rendering.
+- **Web Component**: Uses the custom element `<upay-payment-methods>` for automatic rendering.
 - **Payment Methods Supported**:
   - `apple_pay` (Apple Pay)
   - `apple_pay_knet` (Apple Pay KNET Debit)
@@ -50,7 +50,7 @@ The app will start at `https://localhost:5174` (with HTTPS enabled via `@vitejs/
   <h2>Checkout</h2>
 
   <!-- 2. Declare payment methods element -->
-  <upayments-payment-methods id="payment-methods-el"></upayments-payment-methods>
+  <upay-payment-methods id="payment-methods-el"></upay-payment-methods>
 
   <script>
     // 3. Initialize SDK
@@ -66,13 +66,12 @@ The app will start at `https://localhost:5174` (with HTTPS enabled via `@vitejs/
       const element = document.getElementById('payment-methods-el');
       element.sdk = sdk;
 
-      // 5. Listen for payment selection
-      element.addEventListener('upay:payment-method-selected', async (e) => {
-        const method = e.detail.paymentMethod;
+      // 5. Listen for payment selection and trigger payment inside the user gesture
+      element.addEventListener('upay:method-selected', async (e) => {
+        const { paymentMethod, pay } = e.detail;
 
         try {
-          const result = await sdk.pay({
-            paymentMethod: method,
+          const result = await pay({
             payload: {
               amount: 25.0,
               products: [{ name: 'Product Name', price: 25.0, quantity: 1 }],

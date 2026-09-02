@@ -280,7 +280,7 @@
         }
       });
 
-      function initSdk(token, env) {
+      async function initSdk(token, env) {
         const trimmedToken = (token || '').trim();
         if (!trimmedToken) {
           sdkInstance = null;

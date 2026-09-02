@@ -75,6 +75,7 @@ import {
   UPayments,
   PaymentMethods,
   type PaymentMethodId,
+  type BoundPayHandler,
   type PayOptions,
 } from '@upayments-kw/react';
 
@@ -97,8 +98,8 @@ export const CheckoutClient = () => {
     init();
   }, []);
 
-  const handlePay = async (method: PaymentMethodId) => {
-    if (!sdk) return;
+  const handlePay = async (method: PaymentMethodId, pay: BoundPayHandler) => {
+    if (!sdk || !pay) return;
 
     try {
       const payload: PayOptions['payload'] = {
@@ -121,7 +122,8 @@ export const CheckoutClient = () => {
         cancelUrl: `${window.location.origin}/orders/cancel`,
       };
 
-      const result = await sdk.pay({ paymentMethod: method, payload });
+      // Executes inside the user click gesture
+      const result = await pay({ payload });
       console.log('Payment Success:', result);
     } catch (error) {
       console.error('Payment Failed:', error);
@@ -133,6 +135,7 @@ export const CheckoutClient = () => {
       <h2>Next.js Checkout</h2>
       {sdk ? (
         <PaymentMethods
+          sdk={sdk}
           availableMethods={availableMethods}
           onMethodSelected={handlePay}
         />
