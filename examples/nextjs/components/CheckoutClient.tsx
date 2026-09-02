@@ -152,11 +152,10 @@ export const CheckoutClient: React.FC = () => {
       let result;
       if (typeof pay === 'function') {
         result = await pay({ payload });
-      } else if (typeof (sdk as any).createPayHandler === 'function') {
-        const payHandler = (sdk as any).createPayHandler(method);
-        result = await payHandler({ payload });
       } else if (typeof (sdk as any).pay === 'function') {
         result = await (sdk as any).pay({ paymentMethod: method, payload });
+      } else {
+        throw new Error('Payment must be initiated via the button click handler.');
       }
 
       addLog(`Payment success: ${JSON.stringify(result)}`);

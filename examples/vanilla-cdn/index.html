@@ -257,8 +257,7 @@
           if (pay) {
             result = await pay({ payload });
           } else {
-            const payHandler = sdkInstance.createPayHandler(paymentMethod);
-            result = await payHandler({ payload });
+            throw new Error('Payment must be initiated via the button click handler.');
           }
 
           addLog('Payment completed: ' + JSON.stringify(result));

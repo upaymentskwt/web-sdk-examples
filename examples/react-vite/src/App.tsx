@@ -145,11 +145,10 @@ export const App: React.FC = () => {
       if (typeof pay === 'function') {
         // Direct execution inside user gesture handler
         result = await pay({ payload });
-      } else if (typeof (sdk as any).createPayHandler === 'function') {
-        const payHandler = (sdk as any).createPayHandler(method);
-        result = await payHandler({ payload });
       } else if (typeof (sdk as any).pay === 'function') {
         result = await (sdk as any).pay({ paymentMethod: method, payload });
+      } else {
+        throw new Error('Payment must be initiated via the button click handler.');
       }
 
       addLog(`Payment completed: ${JSON.stringify(result)}`);
