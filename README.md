@@ -156,8 +156,8 @@ export const CheckoutPage = () => {
     init();
   }, []);
 
-  const handlePay = async (method: PaymentMethodId) => {
-    if (!sdk) return;
+  const handlePay = async (method: PaymentMethodId, pay?: BoundPayHandler<'uapi'>) => {
+    if (!sdk || !pay) return;
 
     try {
       const payload: PayOptions['payload'] = {
@@ -189,10 +189,8 @@ export const CheckoutPage = () => {
         notificationUrl: 'https://api.yourstore.com/webhooks/upayments',
       };
 
-      const result = await sdk.pay({
-        paymentMethod: method,
-        payload,
-      });
+      // Execute payment directly inside the user click gesture
+      const result = await pay({ payload });
 
       console.log('Payment Success:', result);
       window.location.href = '/orders/success';
@@ -206,6 +204,7 @@ export const CheckoutPage = () => {
       <h2>Complete Checkout</h2>
       {sdk ? (
         <PaymentMethods
+          sdk={sdk}
           availableMethods={availableMethods}
           onMethodSelected={handlePay}
         />
@@ -224,6 +223,7 @@ import React, { useEffect, useState } from 'react';
 import {
   UPayments,
   ApplePayButton,
+  type BoundPayHandler,
   type PayOptions,
 } from '@upayments-kw/react';
 
@@ -242,9 +242,7 @@ export const StandalonePayment = () => {
     init();
   }, []);
 
-  const handleApplePay = async () => {
-    if (!sdk) return;
-
+  const handleApplePay = async (pay: BoundPayHandler<'uapi'>) => {
     const payload: PayOptions['payload'] = {
       amount: 15.0,
       products: [{ name: 'Espresso Beans', price: 15.0, quantity: 1 }],
@@ -262,15 +260,16 @@ export const StandalonePayment = () => {
       cancelUrl: `${window.location.origin}/orders/cancel`,
     };
 
-    await sdk.pay({ paymentMethod: 'apple_pay', payload });
+    await pay({ payload });
   };
 
   return (
     <div>
       <h3>Express Apple Pay</h3>
       <ApplePayButton
-        buttonType="buy"
-        buttonStyle="black"
+        sdk={sdk}
+        buttonStyle="buy"
+        variant="black"
         onClick={handleApplePay}
       />
     </div>

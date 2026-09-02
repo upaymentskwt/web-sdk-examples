@@ -9,6 +9,8 @@ import {
   type PayOptions,
 } from '@upayments-kw/react';
 
+type BoundPayHandler = (options: { payload: Record<string, unknown> }) => Promise<unknown>;
+
 type Environment = 'sandbox' | 'production';
 
 export const CheckoutClient: React.FC = () => {
@@ -137,7 +139,7 @@ export const CheckoutClient: React.FC = () => {
     };
   };
 
-  const handlePayment = async (method: PaymentMethodId) => {
+  const handlePayment = async (method: PaymentMethodId, pay?: BoundPayHandler) => {
     if (!sdk) {
       alert('Please configure and initialize the SDK first.');
       return;
@@ -147,10 +149,15 @@ export const CheckoutClient: React.FC = () => {
 
     try {
       const payload = buildPaymentPayload(amount);
-      const result = await sdk.pay({
-        paymentMethod: method,
-        payload,
-      });
+      let result;
+      if (typeof pay === 'function') {
+        result = await pay({ payload });
+      } else if (typeof (sdk as any).createPayHandler === 'function') {
+        const payHandler = (sdk as any).createPayHandler(method);
+        result = await payHandler({ payload });
+      } else if (typeof (sdk as any).pay === 'function') {
+        result = await (sdk as any).pay({ paymentMethod: method, payload });
+      }
 
       addLog(`Payment success: ${JSON.stringify(result)}`);
       alert(`Payment Successful!\nTransaction ID: ${result.transactionId}`);
@@ -379,8 +386,9 @@ export const CheckoutClient: React.FC = () => {
               </p>
               <div style={{ maxWidth: 400, margin: '0 auto' }}>
                 <PaymentMethods
+                  {...({ sdk } as any)}
                   availableMethods={availableMethods}
-                  onMethodSelected={(method) => handlePayment(method)}
+                  onMethodSelected={((method: PaymentMethodId, pay?: any) => handlePayment(method, pay)) as any}
                 />
               </div>
             </div>
@@ -391,14 +399,16 @@ export const CheckoutClient: React.FC = () => {
               </p>
               <div style={{ maxWidth: 300, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <ApplePayButton
+                  {...({ sdk, paymentMethod: 'apple_pay' } as any)}
                   variant="black"
                   buttonStyle="buy"
-                  onClick={() => handlePayment('apple_pay')}
+                  onClick={((pay?: any) => handlePayment('apple_pay', pay)) as any}
                 />
                 <ApplePayButton
+                  {...({ sdk, paymentMethod: 'apple_pay' } as any)}
                   variant="white-with-line"
                   buttonStyle="plain"
-                  onClick={() => handlePayment('apple_pay')}
+                  onClick={((pay?: any) => handlePayment('apple_pay', pay)) as any}
                 />
               </div>
             </div>

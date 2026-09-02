@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "description": "Official merchant examples for UPayments Web SDK (UAPI)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/upaymentskwt/web-sdk-examples.git"
+  },
+  "homepage": "https://github.com/upaymentskwt/web-sdk-examples#readme",
+  "bugs": {
+    "url": "https://github.com/upaymentskwt/web-sdk-examples/issues"
+  },
   "scripts": {
     "dev:react": "pnpm --filter @example/react-vite dev",
     "dev:next": "pnpm --filter @example/nextjs dev",

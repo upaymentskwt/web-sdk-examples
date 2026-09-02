@@ -7,6 +7,8 @@ import {
   type PayOptions,
 } from '@upayments-kw/react';
 
+type BoundPayHandler = (options: { payload: Record<string, unknown> }) => Promise<unknown>;
+
 type Environment = 'sandbox' | 'production';
 
 export const App: React.FC = () => {
@@ -15,7 +17,7 @@ export const App: React.FC = () => {
   const [token, setToken] = useState<string>('');
   const [amount, setAmount] = useState<number>(25.0);
   const [availableMethods, setAvailableMethods] = useState<PaymentMethodId[]>([]);
-  const [status, setStatus] = useState<string>('Enter your Bearer API Token to initialize SDK');
+  const [status, setStatus] = useState<string>('Enter Bearer API Token to initialize');
   const [logs, setLogs] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'grouped' | 'standalone'>('grouped');
 
@@ -37,7 +39,7 @@ export const App: React.FC = () => {
       setStatus(`Initializing SDK (${env})...`);
       addLog(`Initializing UPayments SDK in ${env} mode...`);
 
-      // Initialize UPayments SDK
+      // Initialize UPayments SDK for UAPI
       const instance = UPayments.create({
         from: 'uapi',
         environment: env,
@@ -45,22 +47,21 @@ export const App: React.FC = () => {
         debug: true,
       });
 
-      console.log(instance);
-
-      // Event: SDK Ready
+      // Event listener: ready
       instance.on('upay:ready', (event: { availablePaymentMethods: PaymentMethodId[] }) => {
         addLog(
           `Event [upay:ready]: Available methods -> ${event.availablePaymentMethods.join(', ') || 'None'}`,
         );
       });
 
-      // Event: Payment Failed
-      instance.on('upay:payment-failed', (event) => {
+      // Event listener: payment failed
+      instance.on('upay:payment-failed', (event: any) => {
         addLog(
           `Event [upay:payment-failed]: ${event.error?.userMessage || event.error?.code || 'Payment failed'}`,
         );
       });
 
+      // Await network handshake & fetch available payment methods
       await instance.initialize();
 
       setSdk(instance);
@@ -87,19 +88,17 @@ export const App: React.FC = () => {
     initSdk(token, environment);
   };
 
-  /**
-   * Build Create Payment Payload
-   */
-  const buildUapiPayload = (currentAmount: number): PayOptions['payload'] => {
+  const buildUapiPayload = (currentAmount: number): PayOptions<'uapi'>['payload'] => {
     const orderId = `ORD_${Date.now()}`;
     let domainName = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     if (domainName.match(/localhost/)) domainName = 'sdkweb.upaytest.com';
+
     return {
       amount: Number(currentAmount),
       products: [
         {
-          name: 'Demo Product',
-          description: 'Example store checkout item',
+          name: 'Demo Product Item',
+          description: 'Example checkout item description',
           price: Number(currentAmount),
           quantity: 1,
         },
@@ -107,7 +106,7 @@ export const App: React.FC = () => {
       order: {
         id: orderId,
         reference: orderId,
-        description: 'Store Payment via UPayments Web SDK',
+        description: 'Payment for Order #10024',
         currency: 'KWD',
         amount: Number(currentAmount),
       },
@@ -116,7 +115,7 @@ export const App: React.FC = () => {
         id: orderId,
       },
       customer: {
-        uniqueId: 'cust_12345',
+        uniqueId: 'cust_101',
         name: 'Demo Customer',
         mobile: '+96560000000',
         email: 'customer@example.com',
@@ -124,28 +123,34 @@ export const App: React.FC = () => {
       returnUrl:
         typeof window !== 'undefined'
           ? `${window.location.origin}/return`
-          : 'https://localhost:5173/return',
+          : 'https://localhost:3000/return',
       cancelUrl:
         typeof window !== 'undefined'
           ? `${window.location.origin}/cancel`
-          : 'https://localhost:5173/cancel',
+          : 'https://localhost:3000/cancel',
       notificationUrl: 'https://webhook.site/demo-endpoint',
       domainName,
       isSaveCard: false,
     };
   };
 
-  const handlePay = async (method: PaymentMethodId) => {
+  const handlePay = async (method: PaymentMethodId, pay?: BoundPayHandler) => {
     if (!sdk) return;
 
     try {
       addLog(`Initiating payment for ${method} (${amount} KWD)...`);
       const payload = buildUapiPayload(amount);
 
-      const result = await sdk.pay({
-        paymentMethod: method,
-        payload,
-      });
+      let result;
+      if (typeof pay === 'function') {
+        // Direct execution inside user gesture handler
+        result = await pay({ payload });
+      } else if (typeof (sdk as any).createPayHandler === 'function') {
+        const payHandler = (sdk as any).createPayHandler(method);
+        result = await payHandler({ payload });
+      } else if (typeof (sdk as any).pay === 'function') {
+        result = await (sdk as any).pay({ paymentMethod: method, payload });
+      }
 
       addLog(`Payment completed: ${JSON.stringify(result)}`);
       alert(`Payment successful! Track ID / Order: ${JSON.stringify(result)}`);
@@ -377,8 +382,9 @@ export const App: React.FC = () => {
                 Renders all available payment methods supported by the merchant and user device.
               </p>
               <PaymentMethods
+                {...({ sdk } as any)}
                 availableMethods={availableMethods}
-                onMethodSelected={(method) => handlePay(method)}
+                onMethodSelected={((method: PaymentMethodId, pay?: any) => handlePay(method, pay)) as any}
               />
             </div>
           ) : (
@@ -387,9 +393,10 @@ export const App: React.FC = () => {
                 Renders a standalone branded Apple Pay button.
               </p>
               <ApplePayButton
+                {...({ sdk, paymentMethod: 'apple_pay' } as any)}
                 variant="black"
                 buttonStyle="buy"
-                onClick={() => handlePay('apple_pay')}
+                onClick={((pay?: any) => handlePay('apple_pay', pay)) as any}
               />
             </div>
           )}

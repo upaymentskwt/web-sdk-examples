@@ -164,7 +164,7 @@
         </p>
 
         <!-- UPayments Web Component -->
-        <upayments-payment-methods id="payment-methods-el"></upayments-payment-methods>
+        <upay-payment-methods id="payment-methods-el"></upay-payment-methods>
       </section>
 
       <!-- Live Logs Card -->
@@ -245,7 +245,7 @@
         };
       }
 
-      async function handlePayment(paymentMethod) {
+      async function handlePayment(paymentMethod, pay) {
         if (!sdkInstance) return;
 
         const currentAmount = parseFloat(amountInput.value) || 25.0;
@@ -253,10 +253,13 @@
 
         try {
           const payload = buildPaymentPayload(currentAmount);
-          const result = await sdkInstance.pay({
-            paymentMethod,
-            payload,
-          });
+          let result;
+          if (pay) {
+            result = await pay({ payload });
+          } else {
+            const payHandler = sdkInstance.createPayHandler(paymentMethod);
+            result = await payHandler({ payload });
+          }
 
           addLog('Payment completed: ' + JSON.stringify(result));
           alert('Payment successful! ' + JSON.stringify(result));
@@ -267,9 +270,14 @@
       }
 
       // Listen for method selection on the web component
+      paymentMethodsEl.addEventListener('upay:method-selected', (e) => {
+        if (e.detail && e.detail.paymentMethod) {
+          handlePayment(e.detail.paymentMethod, e.detail.pay);
+        }
+      });
       paymentMethodsEl.addEventListener('upay:payment-method-selected', (e) => {
         if (e.detail && e.detail.paymentMethod) {
-          handlePayment(e.detail.paymentMethod);
+          handlePayment(e.detail.paymentMethod, e.detail.pay);
         }
       });
 
